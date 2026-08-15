@@ -2,7 +2,7 @@
 # dlt reads this automatically; env vars and secrets.toml override these values.
 
 [sources.mqtt2hf]
-mqtt_topic = "theengs/BTtoMQTT/#"
+mqtt_topic = "theengs/#"
 hf_namespace = "maxerbox"
 hf_dataset = "temperature-digital-twin"
 flush_interval = 60

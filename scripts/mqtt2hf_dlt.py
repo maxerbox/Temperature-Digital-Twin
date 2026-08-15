@@ -56,7 +56,7 @@ MQTT_HOST = dlt.secrets.get("sources.mqtt2hf.mqtt_host", str) or ""
 MQTT_PORT = dlt.secrets.get("sources.mqtt2hf.mqtt_port", int) or 1883
 MQTT_USER = dlt.secrets.get("sources.mqtt2hf.mqtt_user", str) or ""
 MQTT_PASSWORD = dlt.secrets.get("sources.mqtt2hf.mqtt_password", str) or ""
-MQTT_TOPIC = dlt.config.get("sources.mqtt2hf.mqtt_topic", str) or "theengs/BTtoMQTT/#"
+MQTT_TOPIC = dlt.config.get("sources.mqtt2hf.mqtt_topic", str) or "theengs/#"
 HF_NAMESPACE = dlt.config.get("sources.mqtt2hf.hf_namespace", str) or ""
 HF_DATASET = (
     dlt.config.get("sources.mqtt2hf.hf_dataset", str) or "temperature-digital-twin"
@@ -106,10 +106,20 @@ def on_connect(client, userdata, flags, reason_code, properties=None):
     """Called when the MQTT client connects to the broker."""
     if reason_code == 0:
         log.info("Connected to MQTT %s:%d", MQTT_HOST, MQTT_PORT)
-        client.subscribe(MQTT_TOPIC)
-        log.info("Subscribed to %s", MQTT_TOPIC)
+        result = client.subscribe(MQTT_TOPIC)
+        log.info(
+            "Subscribe requested: %s (mid=%s, qos=%s)",
+            MQTT_TOPIC,
+            result[1],
+            result[0],
+        )
     else:
         log.error("MQTT connect failed: rc=%s", reason_code)
+
+
+def on_subscribe(client, userdata, mid, reason_codes, properties=None):
+    """Called when the broker acknowledges a subscription."""
+    log.info("Subscription acknowledged: mid=%s reason_codes=%s", mid, reason_codes)
 
 
 def on_disconnect(client, userdata, disconnect_flags, reason_code, properties=None):
@@ -206,6 +216,7 @@ def main():
     )
     client.username_pw_set(MQTT_USER, MQTT_PASSWORD)
     client.on_connect = on_connect
+    client.on_subscribe = on_subscribe
     client.on_disconnect = on_disconnect
     client.on_message = on_message
     client.reconnect_delay_set(min_delay=5, max_delay=60)
