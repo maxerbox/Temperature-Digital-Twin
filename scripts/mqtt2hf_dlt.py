@@ -27,7 +27,7 @@ import os
 import signal
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from queue import Empty, Queue
 
 import dlt
@@ -50,13 +50,16 @@ MQTT_USER = dlt.secrets.get("sources.mqtt2hf.mqtt_user", str) or ""
 MQTT_PASSWORD = dlt.secrets.get("sources.mqtt2hf.mqtt_password", str) or ""
 MQTT_TOPIC = dlt.config.get("sources.mqtt2hf.mqtt_topic", str) or "theengs/BTtoMQTT/#"
 HF_NAMESPACE = dlt.config.get("sources.mqtt2hf.hf_namespace", str) or ""
-HF_DATASET = dlt.config.get("sources.mqtt2hf.hf_dataset", str) or "temperature-digital-twin"
+HF_DATASET = (
+    dlt.config.get("sources.mqtt2hf.hf_dataset", str) or "temperature-digital-twin"
+)
 FLUSH_INTERVAL = dlt.config.get("sources.mqtt2hf.flush_interval", int) or 30
 HF_TOKEN = dlt.secrets.get("destination.filesystem.credentials.token", str) or ""
 DRY_RUN = os.environ.get("DRY_RUN", "").lower() in ("1", "true", "yes")
 
 
 # ── dlt resource & pipeline ──────────────────────────────────────────────────
+
 
 @dlt.resource(name="pvvx_sensors", write_disposition="append")
 def sensor_data(messages: list[dict]):
@@ -111,7 +114,7 @@ def on_message(client, userdata, msg):
     try:
         payload = json.loads(msg.payload.decode("utf-8"))
         # Enrich with reception metadata
-        payload["_ts"] = datetime.now(timezone.utc)
+        payload["_ts"] = datetime.now(UTC)
         payload["_topic"] = msg.topic
         msg_queue.put(payload)
     except json.JSONDecodeError as e:
@@ -160,6 +163,7 @@ def flush_buffer():
 
 # ── Shutdown handling ────────────────────────────────────────────────────────
 
+
 def _shutdown(signum, frame):
     """Signal handler for graceful shutdown."""
     global _running
@@ -168,6 +172,7 @@ def _shutdown(signum, frame):
 
 
 # ── Main loop ────────────────────────────────────────────────────────────────
+
 
 def main():
     if not MQTT_USER or not MQTT_PASSWORD:

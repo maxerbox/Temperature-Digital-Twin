@@ -9,11 +9,10 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "atc-mi-interface>=2.0.0",
+    "dlt[filesystem]>=1.30.0",
+    "huggingface_hub",
+    "paho-mqtt>=2.0.0",
 ]
 
-[project.scripts]
-capteurs = "capteurs:main"
-
-[build-system]
-requires = ["uv_build>=0.12.5,<0.13.0"]
-build-backend = "uv_build"
+[tool.uv]
+package = false
