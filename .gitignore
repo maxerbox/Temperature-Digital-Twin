@@ -8,3 +8,6 @@ wheels/
 
 # Virtual environments
 .venv
+
+# dlt secrets (contains credentials — never commit)
+.dlt/secrets.toml
