@@ -1,17 +1,16 @@
 type: picture-elements
-image: /local/floorplan/transparent.png?version=C8A9834DE49B99CE8CA08C0B974F39B4
+image: https://raw.githubusercontent.com/maxerbox/Temperature-Digital-Twin/main/rendered/level%201/floorplan/transparent.png
 elements:
   - type: conditional
     title: Base
-    conditions:
-      []
+    conditions: []
     elements:
       - type: image
         tap_action:
           action: none
         hold_action:
           action: none
-        image: /local/floorplan/base.png?version=727FCA4C3F6719FD1567EF6C53CE96DB
+        image: https://raw.githubusercontent.com/maxerbox/Temperature-Digital-Twin/main/rendered/level%201/floorplan/base.jpeg
         filter: none
         style:
           left: 50%
@@ -21,8 +20,8 @@ elements:
     entity: sensor.gallery_gallery_fd_16_3f_lywsd03mmc_mjwsd05mmc_pvvx_tempc
     title: Gallery temp
     style:
-      top: 41.66%
-      left: 46.94%
+      top: 18.56%
+      left: 48.81%
       border-radius: 50%
       text-align: center
       background-color: rgba(255, 255, 255, 0.3)
@@ -38,8 +37,8 @@ elements:
     entity: sensor.study_study_c9_82_b0_lywsd03mmc_mjwsd05mmc_pvvx_tempc
     title: Study temp
     style:
-      top: 55.62%
-      left: 63.32%
+      top: 64.58%
+      left: 87.24%
       border-radius: 50%
       text-align: center
       background-color: rgba(255, 255, 255, 0.3)
@@ -55,8 +54,8 @@ elements:
     entity: sensor.bedchamber_bedchamber_7e_0d_90_lywsd03mmc_mjwsd05mmc_pvvx_tempc
     title: Bedchamber temp
     style:
-      top: 63.60%
-      left: 60.91%
+      top: 61.83%
+      left: 38.88%
       border-radius: 50%
       text-align: center
       background-color: rgba(255, 255, 255, 0.3)
