@@ -3,13 +3,11 @@ name = "capteurs"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-authors = [
-    { name = "Simon Sassi", email = "ssi63@3ds.com" }
-]
+authors = [{ name = "Simon Sassi", email = "ssi63@3ds.com" }]
 requires-python = ">=3.12"
 dependencies = [
     "atc-mi-interface>=2.0.0",
-    "dlt[filesystem]>=1.30.0",
+    "dlt[filesystem,parquet]>=1.30.0",
     "huggingface_hub",
     "paho-mqtt>=2.0.0",
 ]
