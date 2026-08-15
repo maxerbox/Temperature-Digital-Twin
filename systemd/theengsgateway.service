@@ -1,0 +1,18 @@
+[Unit]
+Description=Theengs Gateway BLE to MQTT
+After=network-online.target bluetooth.service
+Wants=network-online.target bluetooth.service
+
+[Service]
+Type=simple
+User=raspberry
+Group=raspberry
+WorkingDirectory=/home/raspberry/theengsgateway
+
+ExecStart=/home/raspberry/theengsgateway/venv/bin/python -m TheengsGateway -pt theengs -u REDACTED_USER -p REDACTED_PASSWORD -H REDACTED_HOST -P 1883 -wl A4:C1:38:7E:0D:90 A4:C1:38:FD:16:3F A4:C1:38:40:52:36 A4:C1:38:86:84:D3 A4:C1:38:A2:E2:24 A4:C1:38:71:5D:96 A4:C1:38:C9:82:B0 A4:C1:38:D5:E5:44 A4:C1:38:88:E9:A4 A4:C1:38:1E:4A:5E -Dn "Pi Zero BLE Gateway" -D 1 -sd 20 -tb 1 -bk A4:C1:38:7E:0D:90 REDACTED_KEY A4:C1:38:FD:16:3F REDACTED_KEY A4:C1:38:40:52:36 REDACTED_KEY A4:C1:38:86:84:D3 REDACTED_KEY A4:C1:38:A2:E2:24 REDACTED_KEY A4:C1:38:71:5D:96 REDACTED_KEY A4:C1:38:C9:82:B0 REDACTED_KEY A4:C1:38:D5:E5:44 REDACTED_KEY A4:C1:38:88:E9:A4 REDACTED_KEY A4:C1:38:1E:4A:5E REDACTED_KEY
+
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
