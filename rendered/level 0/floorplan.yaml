@@ -1,0 +1,104 @@
+type: picture-elements
+image: /local/floorplan/transparent.png?version=C8A9834DE49B99CE8CA08C0B974F39B4
+elements:
+  - type: conditional
+    title: Base
+    conditions:
+      []
+    elements:
+      - type: image
+        tap_action:
+          action: none
+        hold_action:
+          action: none
+        image: /local/floorplan/base.png?version=B83D3144E463F0524694AEDA2BF2ADC9
+        filter: none
+        style:
+          left: 50%
+          top: 50%
+          width: 100%
+  - type: state-label
+    entity: sensor.parlour_parlour_d5_e5_44_lywsd03mmc_mjwsd05mmc_pvvx_tempc
+    title: Gallery temp
+    style:
+      top: 53.60%
+      left: 62.59%
+      border-radius: 50%
+      text-align: center
+      background-color: rgba(255, 255, 255, 0.3)
+      opacity: 100%
+      transform: translate(-50%, -50%) scale(100%)
+    tap_action:
+      action: more-info
+    double_tap_action:
+      action: none
+    hold_action:
+      action: more-info
+  - type: state-label
+    entity: sensor.lavatory_lavatory_a2_e2_24_lywsd03mmc_mjwsd05mmc_pvvx_tempc
+    title: Gallery temp
+    style:
+      top: 35.22%
+      left: 66.71%
+      border-radius: 50%
+      text-align: center
+      background-color: rgba(255, 255, 255, 0.3)
+      opacity: 100%
+      transform: translate(-50%, -50%) scale(100%)
+    tap_action:
+      action: more-info
+    double_tap_action:
+      action: none
+    hold_action:
+      action: more-info
+  - type: state-label
+    entity: sensor.kitchen_kitchen_40_52_36_lywsd03mmc_mjwsd05mmc_pvvx_tempc
+    title: Gallery temp
+    style:
+      top: 85.59%
+      left: 66.20%
+      border-radius: 50%
+      text-align: center
+      background-color: rgba(255, 255, 255, 0.3)
+      opacity: 100%
+      transform: translate(-50%, -50%) scale(100%)
+    tap_action:
+      action: more-info
+    double_tap_action:
+      action: none
+    hold_action:
+      action: more-info
+  - type: state-label
+    entity: sensor.vestibule_vestibule_71_5d_96_lywsd03mmc_mjwsd05mmc_pvvx_tempc
+    title: Gallery temp
+    style:
+      top: 34.04%
+      left: 77.62%
+      border-radius: 50%
+      text-align: center
+      background-color: rgba(255, 255, 255, 0.3)
+      opacity: 100%
+      transform: translate(-50%, -50%) scale(100%)
+    tap_action:
+      action: more-info
+    double_tap_action:
+      action: none
+    hold_action:
+      action: more-info
+  - type: state-label
+    entity: sensor.drawing_room_drawing_room_88_e9_a4_lywsd03mmc_mjwsd05mmc_pvvx_tempc
+    title: Gallery temp
+    style:
+      top: 30.73%
+      left: 15.31%
+      border-radius: 50%
+      text-align: center
+      background-color: rgba(255, 255, 255, 0.3)
+      opacity: 100%
+      transform: translate(-50%, -50%) scale(100%)
+    tap_action:
+      action: more-info
+    double_tap_action:
+      action: none
+    hold_action:
+      action: more-info
