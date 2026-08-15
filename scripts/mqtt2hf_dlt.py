@@ -41,59 +41,22 @@ logging.basicConfig(
 )
 log = logging.getLogger("mqtt2hf")
 
-# ── Configuration ────────────────────────────────────────────────────────────
-# Resolution order: (1) env vars (CapRover/Docker), (2) .dlt/secrets.toml or
-# .dlt/config.toml (local dev via dlt), (3) hardcoded defaults.
-# Env-var names follow dlt convention: TOML dots → double underscores, uppercase.
-#   sources.mqtt2hf.mqtt_host → SOURCES__MQTT2HF__MQTT_HOST
-
-
-def _resolve(toml_key: str, env_var: str, default: str = "") -> str:
-    """Resolve a string config value from env var, then dlt TOML, then default."""
-    val = os.environ.get(env_var)
-    if val:
-        return val
-    try:
-        return dlt.secrets.get(toml_key, str) or dlt.config.get(toml_key, str) or default
-    except Exception:
-        return default
-
-
-def _resolve_int(toml_key: str, env_var: str, default: int) -> int:
-    """Resolve an int config value from env var, then dlt TOML, then default."""
-    val = os.environ.get(env_var)
-    if val:
-        return int(val)
-    try:
-        return dlt.config.get(toml_key, int) or default
-    except Exception:
-        return default
-
-
-MQTT_HOST = _resolve("sources.mqtt2hf.mqtt_host", "SOURCES__MQTT2HF__MQTT_HOST")
-MQTT_PORT = _resolve_int("sources.mqtt2hf.mqtt_port", "SOURCES__MQTT2HF__MQTT_PORT", 1883)
-MQTT_USER = _resolve("sources.mqtt2hf.mqtt_user", "SOURCES__MQTT2HF__MQTT_USER")
-MQTT_PASSWORD = _resolve(
-    "sources.mqtt2hf.mqtt_password", "SOURCES__MQTT2HF__MQTT_PASSWORD"
+# ── Configuration via dlt ────────────────────────────────────────────────────
+# dlt resolves values in priority order: (1) env vars, (2) secrets.toml,
+# (3) config.toml.  Env-var names use double-underscore, uppercase convention:
+#   sources.mqtt2hf.mqtt_host               → SOURCES__MQTT2HF__MQTT_HOST
+#   destination.filesystem.credentials.token → DESTINATION__FILESYSTEM__CREDENTIALS__TOKEN
+MQTT_HOST = dlt.secrets.get("sources.mqtt2hf.mqtt_host", str) or ""
+MQTT_PORT = dlt.secrets.get("sources.mqtt2hf.mqtt_port", int) or 1883
+MQTT_USER = dlt.secrets.get("sources.mqtt2hf.mqtt_user", str) or ""
+MQTT_PASSWORD = dlt.secrets.get("sources.mqtt2hf.mqtt_password", str) or ""
+MQTT_TOPIC = dlt.config.get("sources.mqtt2hf.mqtt_topic", str) or "theengs/BTtoMQTT/#"
+HF_NAMESPACE = dlt.config.get("sources.mqtt2hf.hf_namespace", str) or ""
+HF_DATASET = (
+    dlt.config.get("sources.mqtt2hf.hf_dataset", str) or "temperature-digital-twin"
 )
-MQTT_TOPIC = _resolve(
-    "sources.mqtt2hf.mqtt_topic", "SOURCES__MQTT2HF__MQTT_TOPIC", "theengs/BTtoMQTT/#"
-)
-HF_NAMESPACE = _resolve(
-    "sources.mqtt2hf.hf_namespace", "SOURCES__MQTT2HF__HF_NAMESPACE"
-)
-HF_DATASET = _resolve(
-    "sources.mqtt2hf.hf_dataset",
-    "SOURCES__MQTT2HF__HF_DATASET",
-    "temperature-digital-twin",
-)
-FLUSH_INTERVAL = _resolve_int(
-    "sources.mqtt2hf.flush_interval", "SOURCES__MQTT2HF__FLUSH_INTERVAL", 60
-)
-HF_TOKEN = _resolve(
-    "destination.filesystem.credentials.token",
-    "DESTINATION__FILESYSTEM__CREDENTIALS__TOKEN",
-)
+FLUSH_INTERVAL = dlt.config.get("sources.mqtt2hf.flush_interval", int) or 60
+HF_TOKEN = dlt.secrets.get("destination.filesystem.credentials.token", str) or ""
 DRY_RUN = os.environ.get("DRY_RUN", "").lower() in ("1", "true", "yes")
 
 
