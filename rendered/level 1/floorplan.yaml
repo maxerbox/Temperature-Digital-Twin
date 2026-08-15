@@ -1,0 +1,70 @@
+type: picture-elements
+image: /local/floorplan/transparent.png?version=C8A9834DE49B99CE8CA08C0B974F39B4
+elements:
+  - type: conditional
+    title: Base
+    conditions:
+      []
+    elements:
+      - type: image
+        tap_action:
+          action: none
+        hold_action:
+          action: none
+        image: /local/floorplan/base.png?version=727FCA4C3F6719FD1567EF6C53CE96DB
+        filter: none
+        style:
+          left: 50%
+          top: 50%
+          width: 100%
+  - type: state-label
+    entity: sensor.gallery_gallery_fd_16_3f_lywsd03mmc_mjwsd05mmc_pvvx_tempc
+    title: Gallery temp
+    style:
+      top: 41.66%
+      left: 46.94%
+      border-radius: 50%
+      text-align: center
+      background-color: rgba(255, 255, 255, 0.3)
+      opacity: 100%
+      transform: translate(-50%, -50%) scale(100%)
+    tap_action:
+      action: more-info
+    double_tap_action:
+      action: none
+    hold_action:
+      action: more-info
+  - type: state-label
+    entity: sensor.study_study_c9_82_b0_lywsd03mmc_mjwsd05mmc_pvvx_tempc
+    title: Study temp
+    style:
+      top: 55.62%
+      left: 63.32%
+      border-radius: 50%
+      text-align: center
+      background-color: rgba(255, 255, 255, 0.3)
+      opacity: 100%
+      transform: translate(-50%, -50%) scale(100%)
+    tap_action:
+      action: more-info
+    double_tap_action:
+      action: none
+    hold_action:
+      action: more-info
+  - type: state-label
+    entity: sensor.bedchamber_bedchamber_7e_0d_90_lywsd03mmc_mjwsd05mmc_pvvx_tempc
+    title: Bedchamber temp
+    style:
+      top: 63.60%
+      left: 60.91%
+      border-radius: 50%
+      text-align: center
+      background-color: rgba(255, 255, 255, 0.3)
+      opacity: 100%
+      transform: translate(-50%, -50%) scale(100%)
+    tap_action:
+      action: more-info
+    double_tap_action:
+      action: none
+    hold_action:
+      action: more-info
