@@ -25,6 +25,7 @@ import json
 import logging
 import os
 import signal
+import socket
 import sys
 import time
 from datetime import UTC, datetime
@@ -34,12 +35,17 @@ import dlt
 import paho.mqtt.client as mqtt
 
 # ── Logging ──────────────────────────────────────────────────────────────────
+# force=True: dlt configures the root logger on import, which makes a plain
+# basicConfig() a no-op.  force=True strips dlt's handlers and applies ours.
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO").upper(),
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
+    force=True,
 )
 log = logging.getLogger("mqtt2hf")
+# Re-assert level after dlt may have reset it during config resolution.
+log.setLevel(os.environ.get("LOG_LEVEL", "INFO").upper())
 
 # ── Configuration via dlt ────────────────────────────────────────────────────
 # dlt resolves values in priority order: (1) env vars, (2) secrets.toml,
@@ -119,6 +125,7 @@ def on_message(client, userdata, msg):
         payload["_ts"] = datetime.now(UTC)
         payload["_topic"] = msg.topic
         msg_queue.put(payload)
+        log.debug("Received: %s", payload)
     except json.JSONDecodeError as e:
         log.error("JSON decode error on %s: %s", msg.topic, e)
     except Exception as e:
@@ -188,10 +195,14 @@ def main():
     signal.signal(signal.SIGINT, _shutdown)
     signal.signal(signal.SIGTERM, _shutdown)
 
+    # Unique client_id: prevents broker disconnecting the new container when
+    # the old one's session hasn't fully closed yet (CapRover rolling restart).
+    client_id = f"mqtt2hf-{socket.gethostname()}-{os.getpid()}"
+
     # Create MQTT client (paho-mqtt 2.x API)
     client = mqtt.Client(
         mqtt.CallbackAPIVersion.VERSION2,
-        client_id="mqtt2hf_dlt",
+        client_id=client_id,
     )
     client.username_pw_set(MQTT_USER, MQTT_PASSWORD)
     client.on_connect = on_connect
@@ -201,7 +212,7 @@ def main():
 
     log.info("Connecting to MQTT %s:%d ...", MQTT_HOST, MQTT_PORT)
     if DRY_RUN:
-        log.info("DRY RUN mode — messages will be logged but not uploaded")
+        log.info("DRY RUN mode - messages will be logged but not uploaded")
 
     client.connect(MQTT_HOST, MQTT_PORT, keepalive=60)
     client.loop_start()
