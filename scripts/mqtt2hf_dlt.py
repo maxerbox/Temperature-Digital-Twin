@@ -27,6 +27,7 @@ import os
 import signal
 import socket
 import sys
+import threading
 import time
 from datetime import UTC, datetime
 from queue import Empty, Queue
@@ -89,6 +90,19 @@ THROTTLE_INTERVAL = dlt.config.get("sources.mqtt2hf.throttle_interval", int) or 
 HF_TOKEN = dlt.secrets.get("destination.filesystem.credentials.hf_token", str) or ""
 DRY_RUN = os.environ.get("DRY_RUN", "").lower() in ("1", "true", "yes")
 
+# Pipeline state directory — passed explicitly to dlt.pipeline() because the
+# config.toml [pipelines] section is easy to get wrong.  Defaults to /data/dlt
+# (Docker volume mount point) or ~/.dlt/pipelines on bare metal.
+PIPELINES_DIR = (
+    dlt.config.get("pipelines.pipelines_dir", str)
+    or os.environ.get("PIPELINES__PIPELINES_DIR", "")
+    or "/data/dlt"
+)
+# Hard timeout (seconds) for a single dlt pipeline.run() call.  If dlt hangs
+# during HF state sync or upload, this ensures the main loop is not blocked
+# forever.  Messages are re-queued on timeout.
+RUN_TIMEOUT = int(os.environ.get("RUN_TIMEOUT", "300"))
+
 
 # ── dlt resource & pipeline ──────────────────────────────────────────────────
 
@@ -122,31 +136,30 @@ TheengsGateway → MQTT → dlt pipeline.
 
 
 def _ensure_hf_readme() -> None:
-    """Upload README.md to the HF dataset repo if it doesn't exist yet.
+    """Force-upload README.md to the HF dataset repo.
 
-    The README's YAML frontmatter restricts the dataset viewer to
-    pvvx_sensors/*.parquet, preventing CastError from dlt's internal
-    metadata tables (_dlt_loads, _dlt_pipeline_state) that use JSONL
-    with different schemas.
+    Always overwrites the README to ensure our YAML frontmatter (glob
+    pattern ``pvvx_sensors/*.parquet``) stays in control.  Previous dlt
+    runs with ``hf_dataset_card=True`` (the default) may have replaced
+    the README with a version that lists explicit file paths — that
+    version breaks the dataset viewer whenever new parquet files are
+    added or old ones removed.  Our glob pattern is robust against
+    that.
     """
-    from huggingface_hub import HfApi, hf_hub_download
+    from huggingface_hub import HfApi
 
     api = HfApi(token=HF_TOKEN)
     repo_id = f"{HF_NAMESPACE}/{HF_DATASET}"
     try:
-        hf_hub_download(repo_id, "README.md", repo_type="dataset")
-        log.debug("README.md already present in HF dataset")
-    except Exception:
-        try:
-            api.upload_file(
-                path_or_fileobj=_HF_README.encode("utf-8"),
-                path_in_repo="README.md",
-                repo_id=repo_id,
-                repo_type="dataset",
-            )
-            log.info("Uploaded README.md to %s", repo_id)
-        except Exception as e:
-            log.warning("Could not upload README.md to HF dataset: %s", e)
+        api.upload_file(
+            path_or_fileobj=_HF_README.encode("utf-8"),
+            path_in_repo="README.md",
+            repo_id=repo_id,
+            repo_type="dataset",
+        )
+        log.info("README.md uploaded to %s", repo_id)
+    except Exception as e:
+        log.warning("Could not upload README.md to HF dataset: %s", e)
 
 
 def get_pipeline() -> "dlt.Pipeline":
@@ -155,15 +168,22 @@ def get_pipeline() -> "dlt.Pipeline":
     if _pipeline is None:
         _pipeline = dlt.pipeline(
             pipeline_name="mqtt_to_hf",
+            pipelines_dir=PIPELINES_DIR,
             destination=dlt.destinations.filesystem(
                 bucket_url=f"hf://datasets/{HF_NAMESPACE}",
+                # Disable dlt's automatic dataset card updates.  dlt makes
+                # extra HTTP calls to HF after every load to rewrite README.md,
+                # which can hang and is unnecessary — we manage the README
+                # ourselves via _ensure_hf_readme().
+                hf_dataset_card=False,
             ),
             dataset_name=HF_DATASET,
         )
         log.info(
-            "dlt pipeline → hf://datasets/%s/%s",
+            "dlt pipeline → hf://datasets/%s/%s (state: %s)",
             HF_NAMESPACE,
             HF_DATASET,
+            PIPELINES_DIR,
         )
         _ensure_hf_readme()
     return _pipeline
@@ -172,6 +192,9 @@ def get_pipeline() -> "dlt.Pipeline":
 # ── MQTT → queue bridge ──────────────────────────────────────────────────────
 msg_queue: Queue = Queue()
 _running = True
+# Interruptible sleep event — lets signal handlers wake the main loop
+# immediately instead of waiting for time.sleep(FLUSH_INTERVAL) to finish.
+_wake = threading.Event()
 # Per-sensor throttle state: mac → monotonic timestamp of last enqueued message.
 _last_seen: dict[str, float] = {}
 
@@ -274,7 +297,7 @@ def flush_buffer():
         return
 
     try:
-        load_info = get_pipeline().run(sensor_data(messages))
+        load_info = _run_with_timeout(get_pipeline(), messages)
         log.info("Upload complete: %s", load_info)
     except Exception as e:
         log.error("dlt pipeline error: %s", e)
@@ -282,6 +305,49 @@ def flush_buffer():
         for m in messages:
             msg_queue.put(m)
         log.warning("Re-queued %d messages for retry", len(messages))
+    except BaseException as e:
+        # Catch SystemExit / KeyboardInterrupt etc. so the process doesn't
+        # die silently — re-queue and re-raise to let signal handlers work.
+        log.error("dlt pipeline fatal error: %s", e)
+        for m in messages:
+            msg_queue.put(m)
+        log.warning("Re-queued %d messages before exit", len(messages))
+        raise
+
+
+# ── dlt run with timeout ─────────────────────────────────────────────────────
+
+
+def _run_with_timeout(pipeline, messages: list[dict], timeout: int = RUN_TIMEOUT):
+    """Run pipeline.run() in a daemon thread with a timeout.
+
+    If the dlt call hangs (e.g. during HF state sync or upload), the main
+    loop is not blocked forever.  The daemon thread is abandoned on timeout
+    — it will be cleaned up when the process exits.
+    """
+    result: list = []  # [load_info] on success, [exception] on failure
+
+    def _worker():
+        try:
+            result.append(pipeline.run(sensor_data(messages)))
+        except BaseException as e:
+            result.append(e)
+
+    t = threading.Thread(target=_worker, daemon=True)
+    t.start()
+    t.join(timeout=timeout)
+
+    if t.is_alive():
+        # Thread is still running — dlt hung.
+        raise TimeoutError(
+            f"pipeline.run() did not complete within {timeout}s — "
+            f"likely hung during HF state sync or upload"
+        )
+
+    if result and isinstance(result[0], BaseException):
+        raise result[0]
+
+    return result[0] if result else None
 
 
 # ── Shutdown handling ────────────────────────────────────────────────────────
@@ -292,6 +358,7 @@ def _shutdown(signum, frame):
     global _running
     log.info("Signal %d received, shutting down...", signum)
     _running = False
+    _wake.set()  # interrupt any pending sleep immediately
 
 
 # ── Main loop ────────────────────────────────────────────────────────────────
@@ -326,15 +393,31 @@ def main():
     client.reconnect_delay_set(min_delay=5, max_delay=60)
 
     log.info("Connecting to MQTT %s:%d ...", MQTT_HOST, MQTT_PORT)
+    log.info(
+        "Config: flush=%ds throttle=%ds pipelines_dir=%s run_timeout=%ds",
+        FLUSH_INTERVAL,
+        THROTTLE_INTERVAL,
+        PIPELINES_DIR,
+        RUN_TIMEOUT,
+    )
     if DRY_RUN:
         log.info("DRY RUN mode - messages will be logged but not uploaded")
 
     client.connect(MQTT_HOST, MQTT_PORT, keepalive=60)
     client.loop_start()
 
-    # Main flush loop
+    # Main flush loop — use Event.wait for interruptible sleep
+    log.info("Main loop started (flush every %ds)", FLUSH_INTERVAL)
     while _running:
-        time.sleep(FLUSH_INTERVAL)
+        # Interruptible sleep: signal handlers call _wake.set()
+        if _wake.wait(FLUSH_INTERVAL):
+            # Event was set by signal handler — exit loop
+            if not _running:
+                break
+            _wake.clear()
+        if not _running:
+            break
+        log.debug("Heartbeat: queue=%d msgs", msg_queue.qsize())
         flush_buffer()
 
     # Graceful shutdown: stop MQTT and do a final flush

@@ -16,6 +16,9 @@ FROM python:3.12-slim-bookworm
 
 WORKDIR /app
 
+# Create pipeline state directory (mount a Docker volume here for persistence)
+RUN mkdir -p /data/dlt
+
 # Copy installed packages from builder
 COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin

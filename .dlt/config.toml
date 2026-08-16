@@ -3,6 +3,9 @@
 
 # Persist pipeline state (schemas, load packages, traces, buffered data)
 # across container restarts. Map a Docker volume to this path.
+# NOTE: must be under [pipelines] section for dlt to read it.
+#   env var: PIPELINES__PIPELINES_DIR
+[pipelines]
 pipelines_dir = "/data/dlt"
 
 [sources.mqtt2hf]
