@@ -47,6 +47,26 @@ log = logging.getLogger("mqtt2hf")
 # Re-assert level after dlt may have reset it during config resolution.
 log.setLevel(os.environ.get("LOG_LEVEL", "INFO").upper())
 
+# ── Monkey-patch: dlt HF create_repo bug ─────────────────────────────────────
+# dlt's HfFilesystemClient.create_dataset() calls huggingface_hub.create_repo()
+# WITHOUT exist_ok=True.  With a fine-grained HF token that lacks the global
+# "Create repos" permission, this raises 401 Unauthorized even when the dataset
+# repo already exists.  Patching to exist_ok=True makes create_repo fall back to
+# repo_info() on 401/402/403, which succeeds for pre-existing repos.
+from dlt.destinations.impl.filesystem.filesystem import HfFilesystemClient
+
+
+def _patched_create_dataset(self) -> None:
+    self.hf_api.create_repo(
+        repo_id=self.repo_id,
+        repo_type="dataset",
+        exist_ok=True,
+    )
+
+
+HfFilesystemClient.create_dataset = _patched_create_dataset
+log.info("Patched HfFilesystemClient.create_dataset with exist_ok=True")
+
 # ── Configuration via dlt ────────────────────────────────────────────────────
 # dlt resolves values in priority order: (1) env vars, (2) secrets.toml,
 # (3) config.toml.  Env-var names use double-underscore, uppercase convention:
