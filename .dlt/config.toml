@@ -1,6 +1,10 @@
 # Non-sensitive configuration - safe to commit.
 # dlt reads this automatically; env vars and secrets.toml override these values.
 
+# Persist pipeline state (schemas, load packages, traces, buffered data)
+# across container restarts. Map a Docker volume to this path.
+pipelines_dir = "/data/dlt"
+
 [sources.mqtt2hf]
 mqtt_topic = "theengs/#"
 hf_namespace = "maxerbox"
