@@ -2,7 +2,7 @@
 // Shows quick range buttons + from/to date inputs that update a datasource's date_filter
 // and trigger a refresh.
 //
-// Quick buttons all filter a RANGE (last N days including today):
+// Quick buttons filter a RANGE of last N days (including today):
 //   Today, -2d, -3d, -7d, -14d, -30d
 //
 // From/To date pickers allow custom range selection.
@@ -42,17 +42,17 @@
           "</h3>",
       );
 
-      // Quick range buttons (4 columns) - all filter a RANGE of last N days
+      // Quick range buttons (3 columns) - each filters a RANGE of last N days (including today)
       var btnRow = $(
-        '<div style="margin-bottom:6px;display:grid;grid-template-columns:repeat(4,1fr);gap:3px;"></div>',
+        '<div style="margin-bottom:6px;display:grid;grid-template-columns:repeat(3,1fr);gap:3px;"></div>',
       );
       var buttons = [
         { label: "Today", filter: "range:1" },
-        { label: "-2d", filter: "range:2" },
-        { label: "-3d", filter: "range:3" },
-        { label: "-7d", filter: "range:7" },
-        { label: "-14d", filter: "range:14" },
-        { label: "-30d", filter: "range:30" },
+        { label: "2 days", filter: "range:2" },
+        { label: "3 days", filter: "range:3" },
+        { label: "7 days", filter: "range:7" },
+        { label: "14 days", filter: "range:14" },
+        { label: "30 days", filter: "range:30" },
       ];
       buttons.forEach(function (btn) {
         var $b = $(
@@ -135,9 +135,9 @@
         }
       }
 
-      syncInputsFromFilter(currentSettings.initial_date || "range:1");
+      syncInputsFromFilter(currentSettings.initial_date || "range:3");
 
-      // Quick button click: all buttons are ranges
+      // Quick button click: all buttons are ranges (last N days including today)
       btnRow.find("button").on("click", function () {
         var filter = $(this).data("filter");
         btnRow.find("button").removeClass("active");
@@ -145,9 +145,9 @@
         syncInputsFromFilter(filter);
         var days = parseInt(String(filter).split(":")[1], 10);
         if (days === 1) {
-          status.text("Filtering for today...");
+          status.text("Today");
         } else {
-          status.text("Filtering last " + days + " days...");
+          status.text("Last " + days + " days (incl. today)");
         }
         self.updateDatasource(filter);
       });
@@ -163,15 +163,15 @@
         btnRow.find("button").removeClass("active");
         var filter = "from:" + from + ",to:" + to;
         if (from === to) {
-          status.text("Filtering for " + from);
+          status.text(from);
         } else {
-          status.text("Filtering " + from + " → " + to);
+          status.text(from + " → " + to);
         }
         self.updateDatasource(filter);
       });
 
       // Trigger initial load
-      var initialFilter = currentSettings.initial_date || "range:1";
+      var initialFilter = currentSettings.initial_date || "range:3";
       status.text("Loading...");
       self.updateDatasource(initialFilter);
     };
@@ -204,7 +204,7 @@
     this.onDispose = function () {};
 
     this.getHeight = function () {
-      return 3;
+      return 4;
     };
   };
 
@@ -233,8 +233,8 @@
         display_name: "Initial Date Filter",
         type: "text",
         description:
-          "'today', 'range:N' (last N days), or 'from:YYYY-MM-DD,to:YYYY-MM-DD'",
-        default_value: "range:1",
+          "'range:N' (last N days incl. today, default range:3), or 'from:YYYY-MM-DD,to:YYYY-MM-DD '",
+        default_value: "range:3",
       },
     ],
     newInstance: function (settings, newInstanceCallback) {

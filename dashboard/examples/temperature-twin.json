@@ -9,7 +9,7 @@
         "dataset": "maxerbox/temperature_digital_twin",
         "config": "pvvx_sensors",
         "split": "train",
-        "date_filter": "today",
+        "date_filter": "range:3",
         "refresh": 300
       }
     }
@@ -26,7 +26,7 @@
           "settings": {
             "title": "Select Date",
             "datasource_name": "Sensors",
-            "initial_date": "today"
+            "initial_date": "range:3"
           }
         }
       ]
@@ -55,6 +55,17 @@
       "row": { "4": 1 },
       "col": { "4": 3 },
       "widgets": [
+        {
+          "type": "text_widget",
+          "settings": {
+            "title": "Date Range",
+            "size": "regular",
+            "value": "datasources[\"Sensors\"].date_label",
+            "sparkline": false,
+            "animate": false,
+            "units": ""
+          }
+        },
         {
           "type": "text_widget",
           "settings": {
