@@ -202,9 +202,17 @@ def on_disconnect(client, userdata, disconnect_flags, reason_code, properties=No
 
 
 def on_message(client, userdata, msg):
-    """Called for each MQTT message — parse JSON, throttle per sensor, enqueue."""
+    """Called for each MQTT message — parse JSON, filter, throttle, enqueue."""
     try:
         payload = json.loads(msg.payload.decode("utf-8"))
+
+        # Filter: only accept devices whose name starts with FLB.
+        # TheengsGateway also picks up Samsung BLE beacons and other
+        # non-sensor devices that have no decoded name — skip those.
+        name = payload.get("name") or ""
+        if not name.startswith("FLB"):
+            log.debug("Filtered non-FLB device: name=%r id=%s", name, payload.get("id"))
+            return
 
         # Identify the sensor — prefer mac, fall back to id, then topic.
         sensor_id = payload.get("mac") or payload.get("id") or msg.topic
