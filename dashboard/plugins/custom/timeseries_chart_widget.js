@@ -275,7 +275,7 @@
                   val = interpolateValue(p.seriesName, p.dataIndex);
                 }
                 var display =
-                  val !== null && val !== undefined
+                  val !== null && val !== undefined && !isNaN(val)
                     ? Number(val).toFixed(1) + " " + metricUnit
                     : "—";
                 html += p.marker + p.seriesName + ": " + display + "<br/>";
