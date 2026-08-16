@@ -1,0 +1,6 @@
+services:
+  agent-freeboard:
+    image: agent-freeboard
+    build: .
+    ports:
+      - "8003:80"
