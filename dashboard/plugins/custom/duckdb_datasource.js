@@ -241,10 +241,7 @@
   // Build the resolve URL for a parquet file on the main branch
   function buildParquetUrl(dataset, path) {
     return (
-      "https://huggingface.co/datasets/" +
-      dataset +
-      "/resolve/main/" +
-      path
+      "https://huggingface.co/datasets/" + dataset + "/resolve/main/" + path
     );
   }
 
@@ -432,13 +429,13 @@
       if (cachedFiles && now - fileCacheTime < FILE_CACHE_TTL) {
         filesPromise = Promise.resolve(cachedFiles);
       } else {
-        filesPromise = fetchParquetFiles(dataset, config).then(function (
-          files,
-        ) {
-          cachedFiles = files;
-          fileCacheTime = now;
-          return files;
-        });
+        filesPromise = fetchParquetFiles(dataset, config).then(
+          function (files) {
+            cachedFiles = files;
+            fileCacheTime = now;
+            return files;
+          },
+        );
       }
 
       filesPromise

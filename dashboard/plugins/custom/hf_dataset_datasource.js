@@ -211,7 +211,8 @@
               var diffMin = Math.round(diffMs / 60000);
               if (diffMin < 1) lastReadingRelative = "just now";
               else if (diffMin === 1) lastReadingRelative = "1 minute ago";
-              else if (diffMin < 60) lastReadingRelative = diffMin + " minutes ago";
+              else if (diffMin < 60)
+                lastReadingRelative = diffMin + " minutes ago";
               else {
                 var diffHr = Math.round(diffMin / 60);
                 if (diffHr === 1) lastReadingRelative = "1 hour ago";

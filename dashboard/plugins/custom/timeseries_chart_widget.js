@@ -6,8 +6,8 @@
     var self = this;
     var currentSettings = settings;
     var container = $(containerElement);
-    var chartDiv = null;      // outer wrapper (position:relative)
-    var echartsDiv = null;    // inner div that ECharts renders into
+    var chartDiv = null; // outer wrapper (position:relative)
+    var echartsDiv = null; // inner div that ECharts renders into
     var chart = null;
     var currentData = null;
     var fullscreenOverlay = null;
@@ -36,7 +36,9 @@
       // ECharts renders into a <div> (not <canvas>), which is more resilient
       // to 0-height containers than Chart.js
       chartDiv = $(
-        '<div style="width:100%;height:' + pixelHeight + 'px;position:relative;"></div>',
+        '<div style="width:100%;height:' +
+          pixelHeight +
+          'px;position:relative;"></div>',
       );
       container.append(chartDiv);
       container.css("overflow", "hidden");
@@ -48,8 +50,8 @@
       // Add fullscreen toggle button (sibling of echartsDiv, on top via z-index)
       var fsBtn = $(
         '<button style="position:absolute;top:6px;right:8px;z-index:10;' +
-          'background:rgba(0,0,0,0.5);border:1px solid #444;border-radius:4px;' +
-          'color:#aaa;padding:3px 8px;font-size:14px;cursor:pointer;line-height:1;' +
+          "background:rgba(0,0,0,0.5);border:1px solid #444;border-radius:4px;" +
+          "color:#aaa;padding:3px 8px;font-size:14px;cursor:pointer;line-height:1;" +
           'transition:color 0.2s,border-color 0.2s;">⛶</button>',
       );
       fsBtn.on("mouseenter", function () {
@@ -79,7 +81,7 @@
         // Keep the fullscreen button
         var fsBtn = $(
           '<button style="position:absolute;top:6px;right:8px;z-index:10;' +
-            'background:rgba(0,0,0,0.5);border:1px solid #444;border-radius:4px;' +
+            "background:rgba(0,0,0,0.5);border:1px solid #444;border-radius:4px;" +
             'color:#aaa;padding:3px 8px;font-size:14px;cursor:pointer;line-height:1;">⛶</button>',
         );
         fsBtn.on("click", function (e) {
@@ -105,7 +107,11 @@
       // Defer until the container div has non-zero dimensions
       var rafRetries = 0;
       function doBuild() {
-        if (!echartsDiv || echartsDiv[0].offsetWidth === 0 || echartsDiv[0].offsetHeight === 0) {
+        if (
+          !echartsDiv ||
+          echartsDiv[0].offsetWidth === 0 ||
+          echartsDiv[0].offsetHeight === 0
+        ) {
           if (rafRetries < 10) {
             rafRetries++;
             requestAnimationFrame(doBuild);
@@ -198,7 +204,10 @@
           var after = null;
           for (var j = 0; j < pts.length; j++) {
             if (pts[j].ts < ts) before = pts[j];
-            if (pts[j].ts > ts && !after) { after = pts[j]; break; }
+            if (pts[j].ts > ts && !after) {
+              after = pts[j];
+              break;
+            }
           }
 
           // Interpolate between before and after
@@ -269,12 +278,7 @@
                   val !== null && val !== undefined
                     ? Number(val).toFixed(1) + " " + metricUnit
                     : "—";
-                html +=
-                  p.marker +
-                  p.seriesName +
-                  ": " +
-                  display +
-                  "<br/>";
+                html += p.marker + p.seriesName + ": " + display + "<br/>";
               });
               return html;
             },
@@ -356,15 +360,15 @@
         // Enter fullscreen
         fullscreenOverlay = $(
           '<div style="position:fixed;top:0;left:0;width:100vw;height:100vh;' +
-            'background:rgba(0,0,0,0.95);z-index:99999;display:flex;' +
+            "background:rgba(0,0,0,0.95);z-index:99999;display:flex;" +
             'flex-direction:column;"></div>',
         );
 
         // Close button
         var closeBtn = $(
           '<button style="position:absolute;top:12px;right:16px;z-index:10;' +
-            'background:rgba(255,255,255,0.1);border:1px solid #555;' +
-            'border-radius:4px;color:#ccc;padding:6px 14px;font-size:16px;' +
+            "background:rgba(255,255,255,0.1);border:1px solid #555;" +
+            "border-radius:4px;color:#ccc;padding:6px 14px;font-size:16px;" +
             'cursor:pointer;">✕ Close</button>',
         );
         closeBtn.on("click", function () {
