@@ -2,17 +2,50 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>agent-freeboard</title>
+    <title>Temperature Digital Twin</title>
 	<meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="viewport" content = "width = device-width, initial-scale = 1, user-scalable = no" />
     <link href="css/freeboard.min.css" rel="stylesheet" />
+    <!-- Toastify.js for lightweight toast notifications (no dependencies) -->
+    <link href="https://cdn.jsdelivr.net/npm/toastify-js@1.12.0/src/toastify.min.css" rel="stylesheet" />
     <script src="js/freeboard.thirdparty.min.js"></script>
     <!-- Apache ECharts for time series charts -->
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
     <!-- timeago.js for human-readable relative timestamps -->
     <script src="https://cdn.jsdelivr.net/npm/timeago.js@4.0.2/dist/timeago.min.js"></script>
+    <!-- Toastify.js for toast notifications -->
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js@1.12.0/src/toastify.js"></script>
+    <script type="text/javascript">
+        // ── Toast helper — available to all plugins via window.showToast ──
+        // Usage: window.showToast("message", "info|success|error|warning")
+        window.showToast = function(message, type) {
+            if (typeof Toastify === "undefined") {
+                console.log("[Toast] (" + (type || "info") + ") " + message);
+                return;
+            }
+            var bgColors = {
+                error:    "linear-gradient(135deg, #d32f2f, #b71c1c)",
+                warning:  "linear-gradient(135deg, #f57c00, #e65100)",
+                success:  "linear-gradient(135deg, #388e3c, #1b5e20)",
+                info:     "linear-gradient(135deg, #1565c0, #0d47a1)"
+            };
+            Toastify({
+                text: message,
+                duration: 8000,
+                close: true,
+                gravity: "top",
+                position: "right",
+                style: {
+                    background: bgColors[type] || bgColors.info,
+                    borderRadius: "6px",
+                    fontSize: "13px",
+                    maxWidth: "420px"
+                }
+            }).showToast();
+        };
+    </script>
     <script type="text/javascript">
         head.js("js/freeboard_plugins.min.js",
                 // *** Load more plugins here ***
@@ -97,11 +130,37 @@
 
                         window.agentFreeboardLoadProjectDashboard = loadProjectDashboard;
 
+                        // Hide loading overlay once the dashboard DOM is ready
+                        window.setLoadingStatus("Loading dashboard...");
+                        setTimeout(window.hideLoadingOverlay, 1500);
+
                     });
                 });
     </script>
 </head>
 <body>
+<!-- Loading overlay — shown until dashboard is ready -->
+<div id="loading-overlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#1a1a2e;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 0.4s;">
+    <div style="font-size:24px;font-weight:600;color:#e0e0e0;margin-bottom:20px;font-family:'Segoe UI',Arial,sans-serif;">Temperature Digital Twin</div>
+    <div style="width:40px;height:40px;border:3px solid #333;border-top-color:#2196F3;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+    <div id="loading-status" style="margin-top:16px;color:#888;font-size:13px;font-family:'Segoe UI',Arial,sans-serif;">Initializing dashboard...</div>
+</div>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+<script>
+    // Update loading status text
+    window.setLoadingStatus = function(msg) {
+        var el = document.getElementById("loading-status");
+        if (el) el.textContent = msg;
+    };
+    // Hide loading overlay
+    window.hideLoadingOverlay = function() {
+        var overlay = document.getElementById("loading-overlay");
+        if (overlay) {
+            overlay.style.opacity = "0";
+            setTimeout(function() { overlay.remove(); }, 400);
+        }
+    };
+</script>
 <div id="board-content">
     <img id="dash-logo" data-bind="attr:{src: header_image}, visible:header_image()">
     <div class="gridster responsive-column-width">

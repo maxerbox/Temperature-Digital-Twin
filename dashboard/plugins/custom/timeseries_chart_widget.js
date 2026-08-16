@@ -67,7 +67,40 @@
     }
 
     function buildChart(data) {
-      if (!chartDiv || !data) return;
+      if (!chartDiv) return;
+
+      // Handle error from datasource — show error message in the widget
+      if (data && data.error) {
+        if (chart) {
+          chart.dispose();
+          chart = null;
+        }
+        chartDiv.empty();
+        // Keep the fullscreen button
+        var fsBtn = $(
+          '<button style="position:absolute;top:6px;right:8px;z-index:10;' +
+            'background:rgba(0,0,0,0.5);border:1px solid #444;border-radius:4px;' +
+            'color:#aaa;padding:3px 8px;font-size:14px;cursor:pointer;line-height:1;">⛶</button>',
+        );
+        fsBtn.on("click", function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          self.toggleFullscreen();
+        });
+        chartDiv.append(fsBtn);
+        chartDiv.append(
+          '<div style="display:flex;align-items:center;justify-content:center;' +
+            'width:100%;height:100%;flex-direction:column;color:#ff6b6b;">' +
+            '<div style="font-size:28px;margin-bottom:8px;">⚠</div>' +
+            '<div style="font-size:12px;padding:0 20px;text-align:center;max-width:90%;' +
+            'font-family:monospace;word-break:break-word;">' +
+            String(data.error).substring(0, 200) +
+            "</div></div>",
+        );
+        return;
+      }
+
+      if (!data) return;
 
       // Defer until the container div has non-zero dimensions
       var rafRetries = 0;
