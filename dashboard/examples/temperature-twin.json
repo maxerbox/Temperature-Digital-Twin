@@ -18,8 +18,8 @@
     {
       "title": "Date Selection",
       "width": 1,
-      "row": { "3": 1 },
-      "col": { "3": 1 },
+      "row": { "4": 1 },
+      "col": { "4": 1 },
       "widgets": [
         {
           "type": "Date Picker",
@@ -34,8 +34,8 @@
     {
       "title": "Sensor Status",
       "width": 1,
-      "row": { "3": 1 },
-      "col": { "3": 2 },
+      "row": { "4": 1 },
+      "col": { "4": 2 },
       "widgets": [
         {
           "type": "text_widget",
@@ -64,8 +64,8 @@
     {
       "title": "Temperature (°C) - All Sensors",
       "width": 2,
-      "row": { "3": 2 },
-      "col": { "3": 1 },
+      "row": { "4": 2 },
+      "col": { "4": 1 },
       "widgets": [
         {
           "type": "Time Series Chart",
@@ -82,8 +82,8 @@
     {
       "title": "Humidity (%) - All Sensors",
       "width": 2,
-      "row": { "3": 3 },
-      "col": { "3": 1 },
+      "row": { "4": 2 },
+      "col": { "4": 3 },
       "widgets": [
         {
           "type": "Time Series Chart",
@@ -98,5 +98,5 @@
       ]
     }
   ],
-  "columns": 3
+  "columns": 4
 }
