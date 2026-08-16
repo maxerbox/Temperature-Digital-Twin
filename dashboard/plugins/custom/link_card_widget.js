@@ -34,7 +34,8 @@
 
       var textWrapper = $('<div style="flex:1;min-width:0;"></div>');
       textWrapper.append(
-        '<div style="color:#e0e0e0;font-size:15px;font-weight:600;margin-bottom:4px;">' +
+        '<div style="color:#e0e0e0;font-size:15px;font-weight:600;margin-bottom:4px;' +
+          'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' +
           title +
           "</div>"
       );
@@ -73,7 +74,7 @@
     this.onDispose = function () {};
 
     this.getHeight = function () {
-      return 1;
+      return 2;
     };
   };
 
