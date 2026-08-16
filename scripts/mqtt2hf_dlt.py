@@ -241,21 +241,6 @@ def on_message(client, userdata, msg):
         log.error("Error processing message on %s: %s", msg.topic, e)
 
 
-def _dedup_per_sensor(messages: list[dict]) -> list[dict]:
-    """Keep only the latest message per sensor (mac → id → topic)."""
-    seen: dict[str, dict] = {}
-    for m in messages:
-        key = m.get("mac") or m.get("id") or m.get("_topic", "")
-        seen[key] = m  # last one wins
-    if len(seen) < len(messages):
-        log.info(
-            "Deduplicated %d → %d messages (per-sensor latest)",
-            len(messages),
-            len(seen),
-        )
-    return list(seen.values())
-
-
 def flush_buffer():
     """Drain the queue and push buffered messages to HF via dlt."""
     messages: list[dict] = []
@@ -269,10 +254,11 @@ def flush_buffer():
         log.debug("No messages to flush")
         return
 
-    # Safety-net dedup: if messages slipped through the throttle (e.g. clock
-    # skew, restart), keep only the latest per sensor.
-    messages = _dedup_per_sensor(messages)
-
+    # No per-sensor dedup here — the throttle in on_message (THROTTLE_INTERVAL)
+    # already ensures at most one message per sensor per ~20s.  Flushing all
+    # buffered messages preserves the full time series at 20s resolution.
+    # Previously, _dedup_per_sensor discarded all but the latest per sensor,
+    # collapsing 1409 messages (1 hour of 20s-interval data) to just 10.
     log.info("Flushing %d messages to Hugging Face", len(messages))
 
     if DRY_RUN:
