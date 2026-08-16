@@ -92,10 +92,14 @@
       );
       wrapper.append(applyBtn);
 
-      // Status / active filter display
+      // Status / active filter display + inline loading spinner
       var status = $(
-        '<div id="dp-status" style="margin-top:4px;color:#888;font-size:11px;line-height:1.4;">Ready</div>',
+        '<div id="dp-status" style="margin-top:4px;color:#888;font-size:11px;line-height:1.4;display:flex;align-items:center;justify-content:center;gap:6px;">Ready</div>',
       );
+      var spinner = $(
+        '<span id="dp-spinner" style="display:none;width:14px;height:14px;border:2px solid #555;border-top-color:#2196f3;border-radius:50%;animation:dp-spin 0.7s linear infinite;flex-shrink:0;"></span>',
+      );
+      status.prepend(spinner);
       wrapper.append(status);
 
       containerEl.append(wrapper);
@@ -146,20 +150,13 @@
         syncInputsFromFilter(filter);
         var days = parseInt(String(filter).split(":")[1], 10);
         if (days === 1) {
-          status.text("Today");
+          status.contents().last().replaceWith("Today");
         } else {
-          status.text("Last " + days + " days (incl. today)");
+          status.contents().last().replaceWith("Last " + days + " days (incl. today)");
         }
-        // Show loading state on the button + status
-        $btn.prop("disabled", true).css("opacity", "0.6");
-        status.text("Fetching from HuggingFace...");
-        if (window.setLoadingStatus) {
-          window.setLoadingStatus(
-            "Fetching " +
-              (days === 1 ? "today" : "last " + days + " days") +
-              " from HuggingFace (DuckDB-WASM)...",
-          );
-        }
+        // Show inline loading spinner
+        spinner.show();
+        status.contents().last().replaceWith("Fetching from HuggingFace...");
         self.updateDatasource(filter);
       });
 
@@ -168,23 +165,14 @@
         var from = fromInput.val();
         var to = toInput.val();
         if (!from || !to) {
-          status.text("Please select both From and To dates");
+          status.contents().last().replaceWith("Please select both From and To dates");
           return;
         }
         btnRow.find("button").removeClass("active");
         var filter = "from:" + from + ",to:" + to;
-        if (from === to) {
-          status.text(from);
-        } else {
-          status.text(from + " → " + to);
-        }
-        applyBtn.prop("disabled", true).css("opacity", "0.6");
-        status.text("Fetching from HuggingFace...");
-        if (window.setLoadingStatus) {
-          window.setLoadingStatus(
-            "Fetching " + from + " → " + to + " from HuggingFace (DuckDB-WASM)...",
-          );
-        }
+        // Show inline loading spinner
+        spinner.show();
+        status.contents().last().replaceWith("Fetching from HuggingFace...");
         self.updateDatasource(filter);
       });
 
@@ -195,29 +183,35 @@
           $(this).addClass("active");
         }
       });
-      var initDays = parseInt(String(initialFilter).split(":")[1], 10);
-      if (initDays === 1) {
-        status.text("Today");
-      } else if (!isNaN(initDays)) {
-        status.text("Last " + initDays + " days (incl. today)");
-      } else {
-        status.text(initialFilter);
-      }
+      // Show spinner for initial fetch
+      spinner.show();
+      status.contents().last().replaceWith("Fetching from HuggingFace...");
       self.updateDatasource(initialFilter);
+    };
+
+    // The datasource calls these to show/hide the inline spinner
+    window._dsFetchStart = function () {
+      $("#dp-spinner").show();
+      $("#dp-status").contents().last().replaceWith("Fetching from HuggingFace...");
+    };
+    window._dsFetchDone = function () {
+      $("#dp-spinner").hide();
+      // Restore status text based on active button
+      var activeBtn = $(".date-btn.active");
+      if (activeBtn.length) {
+        var filter = activeBtn.data("filter");
+        var days = parseInt(String(filter).split(":")[1], 10);
+        if (days === 1) {
+          $("#dp-status").contents().last().replaceWith("Today");
+        } else if (!isNaN(days)) {
+          $("#dp-status").contents().last().replaceWith("Last " + days + " days (incl. today)");
+        }
+      }
     };
 
     this.updateDatasource = function (dateStr) {
       var dsName = currentSettings.datasource_name;
       if (!dsName) return;
-
-      // Set up a one-shot callback so the datasource can re-enable buttons
-      // when the fetch completes (success or error)
-      window._dsFetchDone = function () {
-        window._dsFetchDone = null;
-        if (containerEl) {
-          containerEl.find("button").prop("disabled", false).css("opacity", "");
-        }
-      };
 
       // Use freeboard's public API to update the datasource settings
       // setDatasourceSettings triggers onSettingsChanged internally which re-fetches

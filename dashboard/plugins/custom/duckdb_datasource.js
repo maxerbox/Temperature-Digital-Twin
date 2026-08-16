@@ -287,12 +287,13 @@
         "]";
 
       // Build WHERE clause for date range
-      // _ts is timestamp[us, tz=UTC], we cast to date for comparison
+      // _ts is TIMESTAMP WITH TIME ZONE — DuckDB-WASM can't cast that directly
+      // to DATE. Cast to plain TIMESTAMP first, then to DATE.
       var whereClause =
-        "WHERE CAST(_ts AS DATE) >= CAST('" +
+        "WHERE CAST(CAST(_ts AS TIMESTAMP) AS DATE) >= CAST('" +
         dateRange.start +
         "' AS DATE)" +
-        " AND CAST(_ts AS DATE) <= CAST('" +
+        " AND CAST(CAST(_ts AS TIMESTAMP) AS DATE) <= CAST('" +
         dateRange.end +
         "' AS DATE)";
 
@@ -425,12 +426,8 @@
       var config = currentSettings.config || "pvvx_sensors";
       var dateRange = parseDateRange(currentSettings.date_filter);
 
-      // Notify UI that a fetch is starting (contextual loading indicator)
-      if (window.setLoadingStatus) {
-        window.setLoadingStatus(
-          "Fetching data from HuggingFace (DuckDB-WASM)...",
-        );
-      }
+      // Notify datepicker that a fetch is starting (inline loading spinner)
+      if (window._dsFetchStart) window._dsFetchStart();
 
       // Use cached file list if fresh, otherwise re-fetch
       var filesPromise;
@@ -470,8 +467,6 @@
             result.scannedFiles,
           );
           updateCallback(processed);
-          // Hide contextual loading indicator
-          if (window.hideLoadingOverlay) window.hideLoadingOverlay();
           // Notify datepicker that fetch is done
           if (window._dsFetchDone) window._dsFetchDone();
         })
@@ -482,8 +477,6 @@
           if (window.showToast) {
             window.showToast("DuckDB: " + errMsg, "error");
           }
-          // Hide contextual loading indicator
-          if (window.hideLoadingOverlay) window.hideLoadingOverlay();
           // Notify datepicker that fetch is done
           if (window._dsFetchDone) window._dsFetchDone();
           updateCallback({
