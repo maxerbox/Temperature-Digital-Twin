@@ -48,7 +48,9 @@
             borderRadius: "6px",
             fontSize: "13px",
             maxWidth: "420px",
+            zIndex: "100000",
           },
+          stopOnFocus: true,
         }).showToast();
       };
     </script>
@@ -197,77 +199,96 @@
   </head>
   <body>
     <!-- Loading overlay — shown until dashboard is ready -->
+    <!-- Contextual loading bar — slim banner at top, not fullscreen -->
     <div
-      id="loading-overlay"
+      id="loading-bar"
       style="
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
-        height: 100%;
-        background: #1a1a2e;
+        height: 3px;
+        background: transparent;
         z-index: 99999;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        transition: opacity 0.4s;
+        pointer-events: none;
+        overflow: hidden;
       "
     >
       <div
+        id="loading-bar-fill"
         style="
-          font-size: 24px;
-          font-weight: 600;
-          color: #e0e0e0;
-          margin-bottom: 20px;
-          font-family: &quot;Segoe UI&quot;, Arial, sans-serif;
-        "
-      >
-        Temperature Digital Twin
-      </div>
-      <div
-        style="
-          width: 40px;
-          height: 40px;
-          border: 3px solid #333;
-          border-top-color: #2196f3;
-          border-radius: 50%;
-          animation: spin 0.8s linear infinite;
+          height: 100%;
+          width: 30%;
+          background: #2196f3;
+          border-radius: 0 3px 3px 0;
+          transition: width 0.3s ease, opacity 0.3s ease;
+          opacity: 0;
         "
       ></div>
-      <div
-        id="loading-status"
-        style="
-          margin-top: 16px;
-          color: #888;
-          font-size: 13px;
-          font-family: &quot;Segoe UI&quot;, Arial, sans-serif;
-        "
-      >
-        Initializing dashboard...
-      </div>
     </div>
-    <style>
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
-        }
-      }
-    </style>
+    <div
+      id="loading-status-text"
+      style="
+        position: fixed;
+        top: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(33, 150, 243, 0.9);
+        color: #fff;
+        padding: 4px 16px;
+        border-radius: 0 0 6px 6px;
+        font-size: 12px;
+        font-family: &quot;Segoe UI&quot;, Arial, sans-serif;
+        z-index: 99999;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        white-space: nowrap;
+        max-width: 90%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      "
+    ></div>
     <script>
-      // Update loading status text
+      // Contextual loading indicator — shows a slim top bar + status text
+      // instead of a fullscreen overlay. Used by datasource fetches.
+      var _loadingBarTimer = null;
       window.setLoadingStatus = function (msg) {
-        var el = document.getElementById("loading-status");
-        if (el) el.textContent = msg;
+        var fill = document.getElementById("loading-bar-fill");
+        var text = document.getElementById("loading-status-text");
+        if (fill) {
+          fill.style.opacity = "1";
+          fill.style.width = "30%";
+        }
+        if (text) {
+          text.textContent = msg;
+          text.style.opacity = "1";
+        }
+        // Animate the loading bar
+        if (_loadingBarTimer) clearInterval(_loadingBarTimer);
+        var pct = 30;
+        _loadingBarTimer = setInterval(function () {
+          pct += (90 - pct) * 0.1;
+          if (fill) fill.style.width = pct + "%";
+        }, 300);
       };
-      // Hide loading overlay
       window.hideLoadingOverlay = function () {
-        var overlay = document.getElementById("loading-overlay");
-        if (overlay) {
-          overlay.style.opacity = "0";
+        var fill = document.getElementById("loading-bar-fill");
+        var text = document.getElementById("loading-status-text");
+        if (_loadingBarTimer) {
+          clearInterval(_loadingBarTimer);
+          _loadingBarTimer = null;
+        }
+        if (fill) {
+          fill.style.width = "100%";
           setTimeout(function () {
-            overlay.remove();
-          }, 400);
+            fill.style.opacity = "0";
+          }, 300);
+        }
+        if (text) {
+          setTimeout(function () {
+            text.style.opacity = "0";
+          }, 1000);
         }
       };
     </script>

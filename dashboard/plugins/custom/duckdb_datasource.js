@@ -63,8 +63,10 @@
       var duckdb = await import(DUCKDB_CDN);
 
       // Select the best bundle for this browser (ehsm, mvp, or coi)
+      // selectBundle() is ASYNC — it checks browser features (SIMD, threads, etc.)
+      // Missing await was the root cause of bundle.mainWorker being undefined.
       var JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
-      var bundle = duckdb.selectBundle(JSDELIVR_BUNDLES);
+      var bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
 
       // Create worker from CDN URL via Blob (avoids CORS worker issues)
       var worker_url = URL.createObjectURL(
@@ -423,6 +425,13 @@
       var config = currentSettings.config || "pvvx_sensors";
       var dateRange = parseDateRange(currentSettings.date_filter);
 
+      // Notify UI that a fetch is starting (contextual loading indicator)
+      if (window.setLoadingStatus) {
+        window.setLoadingStatus(
+          "Fetching data from HuggingFace (DuckDB-WASM)...",
+        );
+      }
+
       // Use cached file list if fresh, otherwise re-fetch
       var filesPromise;
       var now = Date.now();
@@ -461,6 +470,10 @@
             result.scannedFiles,
           );
           updateCallback(processed);
+          // Hide contextual loading indicator
+          if (window.hideLoadingOverlay) window.hideLoadingOverlay();
+          // Notify datepicker that fetch is done
+          if (window._dsFetchDone) window._dsFetchDone();
         })
         .catch(function (err) {
           var errMsg = String(err && err.message ? err.message : err);
@@ -469,6 +482,10 @@
           if (window.showToast) {
             window.showToast("DuckDB: " + errMsg, "error");
           }
+          // Hide contextual loading indicator
+          if (window.hideLoadingOverlay) window.hideLoadingOverlay();
+          // Notify datepicker that fetch is done
+          if (window._dsFetchDone) window._dsFetchDone();
           updateCallback({
             error: errMsg,
             sensors: [],

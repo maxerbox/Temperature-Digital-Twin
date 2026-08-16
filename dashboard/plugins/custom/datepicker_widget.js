@@ -140,14 +140,25 @@
       // Quick button click: all buttons are ranges (last N days including today)
       btnRow.find("button").on("click", function () {
         var filter = $(this).data("filter");
+        var $btn = $(this);
         btnRow.find("button").removeClass("active");
-        $(this).addClass("active");
+        $btn.addClass("active");
         syncInputsFromFilter(filter);
         var days = parseInt(String(filter).split(":")[1], 10);
         if (days === 1) {
           status.text("Today");
         } else {
           status.text("Last " + days + " days (incl. today)");
+        }
+        // Show loading state on the button + status
+        $btn.prop("disabled", true).css("opacity", "0.6");
+        status.text("Fetching from HuggingFace...");
+        if (window.setLoadingStatus) {
+          window.setLoadingStatus(
+            "Fetching " +
+              (days === 1 ? "today" : "last " + days + " days") +
+              " from HuggingFace (DuckDB-WASM)...",
+          );
         }
         self.updateDatasource(filter);
       });
@@ -167,6 +178,13 @@
         } else {
           status.text(from + " → " + to);
         }
+        applyBtn.prop("disabled", true).css("opacity", "0.6");
+        status.text("Fetching from HuggingFace...");
+        if (window.setLoadingStatus) {
+          window.setLoadingStatus(
+            "Fetching " + from + " → " + to + " from HuggingFace (DuckDB-WASM)...",
+          );
+        }
         self.updateDatasource(filter);
       });
 
@@ -179,6 +197,15 @@
     this.updateDatasource = function (dateStr) {
       var dsName = currentSettings.datasource_name;
       if (!dsName) return;
+
+      // Set up a one-shot callback so the datasource can re-enable buttons
+      // when the fetch completes (success or error)
+      window._dsFetchDone = function () {
+        window._dsFetchDone = null;
+        if (containerEl) {
+          containerEl.find("button").prop("disabled", false).css("opacity", "");
+        }
+      };
 
       // Use freeboard's public API to update the datasource settings
       // setDatasourceSettings triggers onSettingsChanged internally which re-fetches
