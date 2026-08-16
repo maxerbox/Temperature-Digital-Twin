@@ -188,9 +188,21 @@
         self.updateDatasource(filter);
       });
 
-      // Trigger initial load
+      // Trigger initial load — highlight the matching quick button as active
       var initialFilter = currentSettings.initial_date || "range:3";
-      status.text("Loading...");
+      btnRow.find("button").each(function () {
+        if ($(this).data("filter") === initialFilter) {
+          $(this).addClass("active");
+        }
+      });
+      var initDays = parseInt(String(initialFilter).split(":")[1], 10);
+      if (initDays === 1) {
+        status.text("Today");
+      } else if (!isNaN(initDays)) {
+        status.text("Last " + initDays + " days (incl. today)");
+      } else {
+        status.text(initialFilter);
+      }
       self.updateDatasource(initialFilter);
     };
 

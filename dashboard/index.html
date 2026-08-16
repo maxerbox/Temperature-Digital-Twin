@@ -189,9 +189,8 @@
 
             window.agentFreeboardLoadProjectDashboard = loadProjectDashboard;
 
-            // Hide loading overlay once the dashboard DOM is ready
-            window.setLoadingStatus("Loading dashboard...");
-            setTimeout(window.hideLoadingOverlay, 1500);
+            // No initial loading indicator — the DuckDB datasource will
+            // show the contextual loading bar when it fetches parquet data.
           });
         },
       );
