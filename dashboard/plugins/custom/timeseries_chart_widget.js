@@ -6,7 +6,8 @@
     var self = this;
     var currentSettings = settings;
     var container = $(containerElement);
-    var chartDiv = null;
+    var chartDiv = null;      // outer wrapper (position:relative)
+    var echartsDiv = null;    // inner div that ECharts renders into
     var chart = null;
     var currentData = null;
     var fullscreenOverlay = null;
@@ -40,7 +41,11 @@
       container.append(chartDiv);
       container.css("overflow", "hidden");
 
-      // Add fullscreen toggle button
+      // Inner div for ECharts canvas — kept separate so the button stays on top
+      echartsDiv = $('<div style="width:100%;height:100%;"></div>');
+      chartDiv.append(echartsDiv);
+
+      // Add fullscreen toggle button (sibling of echartsDiv, on top via z-index)
       var fsBtn = $(
         '<button style="position:absolute;top:6px;right:8px;z-index:10;' +
           'background:rgba(0,0,0,0.5);border:1px solid #444;border-radius:4px;' +
@@ -67,7 +72,7 @@
       // Defer until the container div has non-zero dimensions
       var rafRetries = 0;
       function doBuild() {
-        if (chartDiv[0].offsetWidth === 0 || chartDiv[0].offsetHeight === 0) {
+        if (!echartsDiv || echartsDiv[0].offsetWidth === 0 || echartsDiv[0].offsetHeight === 0) {
           if (rafRetries < 10) {
             rafRetries++;
             requestAnimationFrame(doBuild);
@@ -84,7 +89,7 @@
           chart = null;
         }
 
-        chart = echarts.init(chartDiv[0], "dark");
+        chart = echarts.init(echartsDiv[0], "dark");
 
         var metric = currentSettings.metric || "tempc";
         var metricLabel =
