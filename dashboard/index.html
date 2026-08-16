@@ -10,12 +10,19 @@
       name="viewport"
       content="width = device-width, initial-scale = 1, user-scalable = no"
     />
-    <link href="css/freeboard.min.css" rel="stylesheet" />
+    <link href="css/freeboard.css" rel="stylesheet" />
     <!-- JsonTree.js for datasource explorer tree view (zero-dependency, MIT) -->
     <link
       href="https://cdn.jsdelivr.net/gh/williamtroup/JsonTree.js@4.7.1/dist/jsontree.js.min.css"
       rel="stylesheet"
     />
+    <!-- Override JsonTree.js max-width so the tree fills the full card width -->
+    <style>
+      div.json-tree-js {
+        max-width: none !important;
+        display: block !important;
+      }
+    </style>
     <!-- Toastify.js for lightweight toast notifications (no dependencies) -->
     <link
       href="https://cdn.jsdelivr.net/npm/toastify-js@1.12.0/src/toastify.min.css"
