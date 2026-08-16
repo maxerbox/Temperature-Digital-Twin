@@ -105,6 +105,20 @@
                     ? "RSSI (dBm)"
                     : metric;
 
+        // Unit suffix for tooltip display
+        var metricUnit =
+          metric === "tempc"
+            ? "°C"
+            : metric === "hum"
+              ? "%"
+              : metric === "batt"
+                ? "%"
+                : metric === "volt"
+                  ? "V"
+                  : metric === "rssi"
+                    ? "dBm"
+                    : "";
+
         var series = data.series || {};
         var sensorNames = data.sensor_names || [];
 
@@ -122,6 +136,53 @@
         var xLabels = sortedTs.map(function (ts) {
           return ts.substring(11, 19);
         });
+
+        // Build a per-sensor sorted [ts, value] array for interpolation
+        var sensorSortedData = {};
+        sensorNames.forEach(function (name) {
+          var s = (series[name] || []).slice().sort(function (a, b) {
+            return a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0;
+          });
+          sensorSortedData[name] = s.map(function (p) {
+            return { ts: p.ts, val: p[metric] };
+          });
+        });
+
+        // Linear interpolation: given a timestamp index, estimate the value
+        // for a sensor that has no exact data point at that timestamp
+        function interpolateValue(sensorName, tsIndex) {
+          var ts = sortedTs[tsIndex];
+          var pts = sensorSortedData[sensorName];
+          if (!pts || pts.length === 0) return null;
+
+          // Exact match
+          for (var i = 0; i < pts.length; i++) {
+            if (pts[i].ts === ts) return pts[i].val;
+          }
+
+          // Find surrounding points
+          var before = null;
+          var after = null;
+          for (var j = 0; j < pts.length; j++) {
+            if (pts[j].ts < ts) before = pts[j];
+            if (pts[j].ts > ts && !after) { after = pts[j]; break; }
+          }
+
+          // Interpolate between before and after
+          if (before && after) {
+            var t0 = new Date(before.ts).getTime();
+            var t1 = new Date(after.ts).getTime();
+            var t = new Date(ts).getTime();
+            if (t1 === t0) return before.val;
+            var ratio = (t - t0) / (t1 - t0);
+            return before.val + (after.val - before.val) * ratio;
+          }
+
+          // Extrapolate if only one side is available
+          if (before) return before.val;
+          if (after) return after.val;
+          return null;
+        }
 
         // Build ECharts series per sensor
         var echartsSeries = sensorNames.map(function (name, idx) {
@@ -158,6 +219,31 @@
           tooltip: {
             trigger: "axis",
             axisPointer: { type: "cross" },
+            formatter: function (params) {
+              if (!params || params.length === 0) return "";
+              var html =
+                '<div style="font-weight:bold;margin-bottom:4px;">' +
+                params[0].axisValueLabel +
+                "</div>";
+              params.forEach(function (p) {
+                var val = p.value;
+                // If null, interpolate from surrounding data points
+                if (val === null || val === undefined) {
+                  val = interpolateValue(p.seriesName, p.dataIndex);
+                }
+                var display =
+                  val !== null && val !== undefined
+                    ? Number(val).toFixed(1) + " " + metricUnit
+                    : "—";
+                html +=
+                  p.marker +
+                  p.seriesName +
+                  ": " +
+                  display +
+                  "<br/>";
+              });
+              return html;
+            },
           },
           legend: {
             show: currentSettings.show_legend !== false,
@@ -190,7 +276,13 @@
             type: "value",
             name: metricLabel,
             nameTextStyle: { color: "#a0a0a0" },
-            axisLabel: { color: "#a0a0a0", fontSize: 10 },
+            axisLabel: {
+              color: "#a0a0a0",
+              fontSize: 10,
+              formatter: function (val) {
+                return val + " " + metricUnit;
+              },
+            },
             axisLine: { lineStyle: { color: "#555" } },
             splitLine: { lineStyle: { color: "#333" } },
           },
