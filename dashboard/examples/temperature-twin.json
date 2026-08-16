@@ -32,10 +32,28 @@
       ]
     },
     {
-      "title": "Sensor Status",
+      "title": "Hugging Face",
       "width": 1,
       "row": { "4": 1 },
       "col": { "4": 2 },
+      "widgets": [
+        {
+          "type": "Link Card",
+          "settings": {
+            "url": "https://huggingface.co/datasets/maxerbox/temperature_digital_twin",
+            "emoji": "\ud83e\udd17",
+            "title": "Hugging Face Source Dataset",
+            "subtitle": "maxerbox/temperature_digital_twin",
+            "open_new_tab": true
+          }
+        }
+      ]
+    },
+    {
+      "title": "Sensor Status",
+      "width": 1,
+      "row": { "4": 1 },
+      "col": { "4": 3 },
       "widgets": [
         {
           "type": "text_widget",
