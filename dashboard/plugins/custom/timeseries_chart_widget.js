@@ -9,6 +9,10 @@
     var chartDiv = null;
     var chart = null;
     var currentData = null;
+    var fullscreenOverlay = null;
+    var fullscreenChart = null;
+    var fullscreenDiv = null;
+    var lastOption = null;
 
     // Colors for sensor lines
     var COLORS = [
@@ -31,10 +35,30 @@
       // ECharts renders into a <div> (not <canvas>), which is more resilient
       // to 0-height containers than Chart.js
       chartDiv = $(
-        '<div style="width:100%;height:' + pixelHeight + 'px;"></div>',
+        '<div style="width:100%;height:' + pixelHeight + 'px;position:relative;"></div>',
       );
       container.append(chartDiv);
       container.css("overflow", "hidden");
+
+      // Add fullscreen toggle button
+      var fsBtn = $(
+        '<button style="position:absolute;top:6px;right:8px;z-index:10;' +
+          'background:rgba(0,0,0,0.5);border:1px solid #444;border-radius:4px;' +
+          'color:#aaa;padding:3px 8px;font-size:14px;cursor:pointer;line-height:1;' +
+          'transition:color 0.2s,border-color 0.2s;">⛶</button>',
+      );
+      fsBtn.on("mouseenter", function () {
+        fsBtn.css({ color: "#fff", "border-color": "#2196F3" });
+      });
+      fsBtn.on("mouseleave", function () {
+        fsBtn.css({ color: "#aaa", "border-color": "#444" });
+      });
+      fsBtn.on("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        self.toggleFullscreen();
+      });
+      chartDiv.append(fsBtn);
     }
 
     function buildChart(data) {
@@ -178,11 +202,66 @@
           series: echartsSeries,
         };
 
+        lastOption = option;
         chart.setOption(option);
       }
 
       doBuild();
     }
+
+    this.toggleFullscreen = function () {
+      if (fullscreenOverlay) {
+        // Exit fullscreen
+        if (fullscreenChart) {
+          fullscreenChart.dispose();
+          fullscreenChart = null;
+        }
+        fullscreenOverlay.remove();
+        fullscreenOverlay = null;
+        fullscreenDiv = null;
+        // Resize the inline chart back to normal
+        if (chart) chart.resize();
+      } else {
+        // Enter fullscreen
+        fullscreenOverlay = $(
+          '<div style="position:fixed;top:0;left:0;width:100vw;height:100vh;' +
+            'background:rgba(0,0,0,0.95);z-index:99999;display:flex;' +
+            'flex-direction:column;"></div>',
+        );
+
+        // Close button
+        var closeBtn = $(
+          '<button style="position:absolute;top:12px;right:16px;z-index:10;' +
+            'background:rgba(255,255,255,0.1);border:1px solid #555;' +
+            'border-radius:4px;color:#ccc;padding:6px 14px;font-size:16px;' +
+            'cursor:pointer;">✕ Close</button>',
+        );
+        closeBtn.on("click", function () {
+          self.toggleFullscreen();
+        });
+
+        fullscreenDiv = $(
+          '<div style="flex:1;width:100%;margin-top:20px;"></div>',
+        );
+
+        fullscreenOverlay.append(closeBtn, fullscreenDiv);
+        $(document.body).append(fullscreenOverlay);
+
+        // Initialize ECharts in fullscreen div
+        fullscreenChart = echarts.init(fullscreenDiv[0], "dark");
+        if (lastOption) {
+          fullscreenChart.setOption(lastOption);
+        }
+
+        // Handle Escape key
+        var escHandler = function (e) {
+          if (e.key === "Escape" && fullscreenOverlay) {
+            self.toggleFullscreen();
+          }
+        };
+        $(document).on("keydown.fschart", escHandler);
+      }
+    };
 
     function updateValue() {
       if (!currentSettings.data_source) return;
@@ -221,6 +300,15 @@
     };
 
     this.onDispose = function () {
+      if (fullscreenChart) {
+        fullscreenChart.dispose();
+        fullscreenChart = null;
+      }
+      if (fullscreenOverlay) {
+        fullscreenOverlay.remove();
+        fullscreenOverlay = null;
+      }
+      $(document).off("keydown.fschart");
       if (chart) {
         chart.dispose();
         chart = null;

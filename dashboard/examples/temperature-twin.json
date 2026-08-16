@@ -92,7 +92,7 @@
             "data_source": "datasources[\"Sensors\"]",
             "metric": "tempc",
             "show_legend": true,
-            "height": 5
+            "height": 10
           }
         }
       ]
@@ -100,7 +100,7 @@
     {
       "title": "Humidity (%) - All Sensors",
       "width": 2,
-      "row": { "4": 2 },
+      "row": { "4": 3 },
       "col": { "4": 3 },
       "widgets": [
         {
@@ -110,7 +110,7 @@
             "data_source": "datasources[\"Sensors\"]",
             "metric": "hum",
             "show_legend": true,
-            "height": 5
+            "height": 10
           }
         }
       ]
