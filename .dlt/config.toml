@@ -6,3 +6,7 @@ mqtt_topic = "theengs/#"
 hf_namespace = "maxerbox"
 hf_dataset = "temperature-digital-twin"
 flush_interval = 60
+# Minimum seconds between logged messages from the same sensor.
+# TheengsGateway publishes every few seconds; this drops intermediate
+# messages so each sensor contributes at most one row per interval.
+throttle_interval = 20

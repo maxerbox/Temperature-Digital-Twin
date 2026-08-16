@@ -82,6 +82,10 @@ HF_DATASET = (
     dlt.config.get("sources.mqtt2hf.hf_dataset", str) or "temperature-digital-twin"
 )
 FLUSH_INTERVAL = dlt.config.get("sources.mqtt2hf.flush_interval", int) or 60
+# Minimum seconds between logged messages from the same sensor.
+# TheengsGateway can publish every few seconds; this throttle drops
+# intermediate messages, keeping at most one per sensor per interval.
+THROTTLE_INTERVAL = dlt.config.get("sources.mqtt2hf.throttle_interval", int) or 20
 HF_TOKEN = dlt.secrets.get("destination.filesystem.credentials.hf_token", str) or ""
 DRY_RUN = os.environ.get("DRY_RUN", "").lower() in ("1", "true", "yes")
 
@@ -96,6 +100,53 @@ def sensor_data(messages: list[dict]):
 
 
 _pipeline: "dlt.Pipeline | None" = None
+
+# README.md content with YAML frontmatter that tells the HF dataset viewer to
+# only load pvvx_sensors/*.parquet, ignoring dlt's internal JSONL metadata
+# tables (_dlt_loads, _dlt_pipeline_state, _dlt_version) which have different
+# schemas and would cause a CastError in the viewer.
+_HF_README = """\
+---
+configs:
+- config_name: default
+  data_files:
+  - split: train
+    path: "pvvx_sensors/*.parquet"
+---
+
+# Temperature Digital Twin
+
+PVVX BLE sensor readings (temperature, humidity, battery) collected via
+TheengsGateway → MQTT → dlt pipeline.
+"""
+
+
+def _ensure_hf_readme() -> None:
+    """Upload README.md to the HF dataset repo if it doesn't exist yet.
+
+    The README's YAML frontmatter restricts the dataset viewer to
+    pvvx_sensors/*.parquet, preventing CastError from dlt's internal
+    metadata tables (_dlt_loads, _dlt_pipeline_state) that use JSONL
+    with different schemas.
+    """
+    from huggingface_hub import HfApi, hf_hub_download
+
+    api = HfApi(token=HF_TOKEN)
+    repo_id = f"{HF_NAMESPACE}/{HF_DATASET}"
+    try:
+        hf_hub_download(repo_id, "README.md", repo_type="dataset")
+        log.debug("README.md already present in HF dataset")
+    except Exception:
+        try:
+            api.upload_file(
+                path_or_fileobj=_HF_README.encode("utf-8"),
+                path_in_repo="README.md",
+                repo_id=repo_id,
+                repo_type="dataset",
+            )
+            log.info("Uploaded README.md to %s", repo_id)
+        except Exception as e:
+            log.warning("Could not upload README.md to HF dataset: %s", e)
 
 
 def get_pipeline() -> "dlt.Pipeline":
@@ -114,12 +165,15 @@ def get_pipeline() -> "dlt.Pipeline":
             HF_NAMESPACE,
             HF_DATASET,
         )
+        _ensure_hf_readme()
     return _pipeline
 
 
 # ── MQTT → queue bridge ──────────────────────────────────────────────────────
 msg_queue: Queue = Queue()
 _running = True
+# Per-sensor throttle state: mac → monotonic timestamp of last enqueued message.
+_last_seen: dict[str, float] = {}
 
 
 def on_connect(client, userdata, flags, reason_code, properties=None):
@@ -148,9 +202,26 @@ def on_disconnect(client, userdata, disconnect_flags, reason_code, properties=No
 
 
 def on_message(client, userdata, msg):
-    """Called for each MQTT message — parse JSON and enqueue."""
+    """Called for each MQTT message — parse JSON, throttle per sensor, enqueue."""
     try:
         payload = json.loads(msg.payload.decode("utf-8"))
+
+        # Identify the sensor — prefer mac, fall back to id, then topic.
+        sensor_id = payload.get("mac") or payload.get("id") or msg.topic
+
+        # Throttle: drop messages from the same sensor within THROTTLE_INTERVAL.
+        now = time.monotonic()
+        last = _last_seen.get(sensor_id)
+        if last is not None and (now - last) < THROTTLE_INTERVAL:
+            log.debug(
+                "Throttled %s (%.1fs < %ds)",
+                sensor_id,
+                now - last,
+                THROTTLE_INTERVAL,
+            )
+            return
+        _last_seen[sensor_id] = now
+
         # Enrich with reception metadata
         payload["_ts"] = datetime.now(UTC)
         payload["_topic"] = msg.topic
@@ -160,6 +231,21 @@ def on_message(client, userdata, msg):
         log.error("JSON decode error on %s: %s", msg.topic, e)
     except Exception as e:
         log.error("Error processing message on %s: %s", msg.topic, e)
+
+
+def _dedup_per_sensor(messages: list[dict]) -> list[dict]:
+    """Keep only the latest message per sensor (mac → id → topic)."""
+    seen: dict[str, dict] = {}
+    for m in messages:
+        key = m.get("mac") or m.get("id") or m.get("_topic", "")
+        seen[key] = m  # last one wins
+    if len(seen) < len(messages):
+        log.info(
+            "Deduplicated %d → %d messages (per-sensor latest)",
+            len(messages),
+            len(seen),
+        )
+    return list(seen.values())
 
 
 def flush_buffer():
@@ -174,6 +260,10 @@ def flush_buffer():
     if not messages:
         log.debug("No messages to flush")
         return
+
+    # Safety-net dedup: if messages slipped through the throttle (e.g. clock
+    # skew, restart), keep only the latest per sensor.
+    messages = _dedup_per_sensor(messages)
 
     log.info("Flushing %d messages to Hugging Face", len(messages))
 
