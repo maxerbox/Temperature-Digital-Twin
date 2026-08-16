@@ -70,8 +70,8 @@ log.info("Patched HfFilesystemClient.create_dataset with exist_ok=True")
 # ── Configuration via dlt ────────────────────────────────────────────────────
 # dlt resolves values in priority order: (1) env vars, (2) secrets.toml,
 # (3) config.toml.  Env-var names use double-underscore, uppercase convention:
-#   sources.mqtt2hf.mqtt_host               → SOURCES__MQTT2HF__MQTT_HOST
-#   destination.filesystem.credentials.token → DESTINATION__FILESYSTEM__CREDENTIALS__TOKEN
+#   sources.mqtt2hf.mqtt_host                 → SOURCES__MQTT2HF__MQTT_HOST
+#   destination.filesystem.credentials.hf_token → DESTINATION__FILESYSTEM__CREDENTIALS__HF_TOKEN
 MQTT_HOST = dlt.secrets.get("sources.mqtt2hf.mqtt_host", str) or ""
 MQTT_PORT = dlt.secrets.get("sources.mqtt2hf.mqtt_port", int) or 1883
 MQTT_USER = dlt.secrets.get("sources.mqtt2hf.mqtt_user", str) or ""
@@ -82,7 +82,7 @@ HF_DATASET = (
     dlt.config.get("sources.mqtt2hf.hf_dataset", str) or "temperature-digital-twin"
 )
 FLUSH_INTERVAL = dlt.config.get("sources.mqtt2hf.flush_interval", int) or 60
-HF_TOKEN = dlt.secrets.get("destination.filesystem.credentials.token", str) or ""
+HF_TOKEN = dlt.secrets.get("destination.filesystem.credentials.hf_token", str) or ""
 DRY_RUN = os.environ.get("DRY_RUN", "").lower() in ("1", "true", "yes")
 
 
