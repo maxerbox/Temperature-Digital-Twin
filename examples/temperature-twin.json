@@ -76,6 +76,28 @@
             "animate": true,
             "units": ""
           }
+        },
+        {
+          "type": "text_widget",
+          "settings": {
+            "title": "Last Reading",
+            "size": "regular",
+            "value": "datasources[\"Sensors\"].last_reading_ts",
+            "sparkline": false,
+            "animate": false,
+            "units": ""
+          }
+        },
+        {
+          "type": "text_widget",
+          "settings": {
+            "title": "Data Refreshed",
+            "size": "regular",
+            "value": "datasources[\"Sensors\"].last_updated_display",
+            "sparkline": false,
+            "animate": false,
+            "units": ""
+          }
         }
       ]
     },
