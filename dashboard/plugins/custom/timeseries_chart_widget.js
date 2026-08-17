@@ -137,18 +137,60 @@
             allTs[point.ts] = true;
           });
         });
-        var sortedTs = Object.keys(allTs).sort();
+
+        // Normalize any timestamp (ISO string, epoch ms, epoch µs, BigInt)
+        // to milliseconds-since-epoch for Date arithmetic and sorting.
+        function tsToMillis(ts) {
+          if (typeof ts === "number") {
+            return ts > 1e15 ? ts / 1000 : ts;
+          }
+          if (typeof ts === "bigint") {
+            return Number(ts) / 1000;
+          }
+          if (typeof ts === "string" && /^\d+$/.test(ts)) {
+            var n = Number(ts);
+            return n > 1e15 ? n / 1000 : n;
+          }
+          return new Date(ts).getTime();
+        }
+
+        // Sort timestamps chronologically (not lexicographically)
+        var sortedTs = Object.keys(allTs).sort(function (a, b) {
+          var ta = tsToMillis(a);
+          var tb = tsToMillis(b);
+          return ta < tb ? -1 : ta > tb ? 1 : 0;
+        });
 
         // X-axis labels: HH:MM:SS
+        // Robust: handle ISO strings, epoch numbers (ms or µs), and BigInt
+        function tsToTimeLabel(ts) {
+          var d;
+          if (typeof ts === "number") {
+            // Heuristic: >1e15 = microseconds, >1e12 = milliseconds
+            d = ts > 1e15 ? new Date(ts / 1000) : new Date(ts);
+          } else if (typeof ts === "bigint") {
+            d = new Date(Number(ts) / 1000);
+          } else if (typeof ts === "string" && /^\d+$/.test(ts)) {
+            var n = Number(ts);
+            d = n > 1e15 ? new Date(n / 1000) : new Date(n);
+          } else {
+            d = new Date(ts);
+          }
+          if (isNaN(d.getTime())) return String(ts);
+          var hh = String(d.getHours()).padStart(2, "0");
+          var mm = String(d.getMinutes()).padStart(2, "0");
+          var ss = String(d.getSeconds()).padStart(2, "0");
+          return hh + ":" + mm + ":" + ss;
+        }
         var xLabels = sortedTs.map(function (ts) {
-          return ts.substring(11, 19);
+          return tsToTimeLabel(ts);
         });
 
         // Build a per-sensor sorted [ts, value] array for interpolation
         var sensorSortedData = {};
         sensorNames.forEach(function (name) {
           var s = (series[name] || []).slice().sort(function (a, b) {
-            return a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0;
+            return tsToMillis(a.ts) - tsToMillis(b.ts);
           });
           sensorSortedData[name] = s.map(function (p) {
             return { ts: p.ts, val: p[metric] };
@@ -186,9 +228,9 @@
 
           // Interpolate between before and after
           if (before && after) {
-            var t0 = new Date(before.ts).getTime();
-            var t1 = new Date(after.ts).getTime();
-            var t = new Date(ts).getTime();
+            var t0 = tsToMillis(before.ts);
+            var t1 = tsToMillis(after.ts);
+            var t = tsToMillis(ts);
             if (t1 === t0) return before.val;
             var ratio = (t - t0) / (t1 - t0);
             return before.val + (after.val - before.val) * ratio;
