@@ -18,7 +18,12 @@
 
 		function createCanvas() {
 			container.empty();
-			var wrapper = $('<div style="width:100%;height:100%;position:relative;"></div>');
+			// Use explicit pixel height to avoid 0-height container collapse in freeboard
+			// (height:100% only works if the parent has a defined height; freeboard's grid
+			//  cells can be 0-height on initial render → canvas 0×0 → Chart.js crash)
+			var heightRows = Number(currentSettings.height) || 4;
+			var pixelHeight = Math.max(200, heightRows * 60); // ~60px per row, min 200px
+			var wrapper = $('<div style="width:100%;height:' + pixelHeight + 'px;position:relative;"></div>');
 			canvas = $('<canvas></canvas>');
 			wrapper.append(canvas);
 			container.append(wrapper);
@@ -27,6 +32,26 @@
 
 		function buildChart(data) {
 			if (!canvas || !data) return;
+
+			// Defer until canvas is in the DOM with non-zero dimensions.
+			// If we build immediately after createCanvas(), the browser may not
+			// have laid out the canvas yet → 0×0 → Chart.js "t is null" crash.
+			var rafRetries = 0;
+			function doBuild() {
+				var ctx = canvas[0].getContext("2d");
+				if (!ctx || (canvas[0].offsetWidth === 0 || canvas[0].offsetHeight === 0)) {
+					// Retry a few times after the next paint, then give up gracefully
+					if (rafRetries < 10) {
+						rafRetries++;
+						requestAnimationFrame(doBuild);
+						return;
+					}
+					return; // give up — container never got dimensions
+				}
+				actuallyBuild(ctx);
+			}
+
+			function actuallyBuild(ctx) {
 			if (chart) {
 				chart.destroy();
 				chart = null;
@@ -81,7 +106,6 @@
 				};
 			});
 
-			var ctx = canvas[0].getContext("2d");
 			chart = new Chart(ctx, {
 				type: "line",
 				data: {
@@ -126,6 +150,9 @@
 					}
 				}
 			});
+			} // end actuallyBuild
+
+			doBuild();
 		}
 
 		function updateValue() {
