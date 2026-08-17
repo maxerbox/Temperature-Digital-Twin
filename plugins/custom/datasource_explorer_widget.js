@@ -41,7 +41,7 @@
       // Check that JsonTree.js is loaded
       if (typeof $jsontree === "undefined") {
         container.append(
-          '<div style="color:#ff6b6b;font-size:12px;padding:12px;font-family:monospace;">' +
+          '<div style="color:#ff6b6b;font-size:12px;padding:12px;font-family:monospace;flex-shrink:0;">' +
             "JsonTree.js failed to load. Check your network connection and reload the page." +
             "</div>",
         );
@@ -52,7 +52,7 @@
 
       // ── Header ──
       var header = $(
-        '<div style="margin-bottom:6px;padding-bottom:6px;' +
+        '<div style="margin-bottom:6px;padding-bottom:6px;flex-shrink:0;' +
           'border-bottom:1px solid #333;font-size:11px;color:#888;">' +
           '<span style="color:#82b1ff;">📦 ' +
           escapeHtml(dsName || "datasource") +
@@ -66,14 +66,14 @@
 
       if (!data) {
         container.append(
-          '<div style="color:#666;font-size:12px;padding:12px;">No data yet. Waiting for datasource...</div>',
+          '<div style="color:#666;font-size:12px;padding:12px;flex-shrink:0;">No data yet. Waiting for datasource...</div>',
         );
         return;
       }
 
       // ── Toolbar: expand all / collapse all / copy all JSON ──
       var toolbar = $(
-        '<div style="margin-bottom:6px;font-size:10px;display:flex;gap:12px;align-items:center;">' +
+        '<div style="margin-bottom:6px;font-size:10px;flex-shrink:0;display:flex;gap:12px;align-items:center;">' +
           '<span class="ds-expand-all" style="cursor:pointer;color:#2196f3;">Expand all</span>' +
           '<span class="ds-collapse-all" style="cursor:pointer;color:#2196f3;">Collapse all</span>' +
           '<span class="ds-copy-json" style="cursor:pointer;color:#4caf50;">Copy JSON</span>' +
@@ -87,7 +87,7 @@
       var treeDiv = $(
         '<div id="' +
           treeElementId +
-          '" style="max-height:400px;overflow:auto;"></div>',
+          '" style="flex:1;min-height:0;overflow:auto;"></div>',
       );
       container.append(treeDiv);
 
@@ -196,10 +196,16 @@
     this.render = function (containerElement) {
       container = $(containerElement);
       container.empty();
-      container.css("overflow", "auto");
+      // Flex column layout so the tree fills remaining height after header/toolbar
+      container.css({
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+      });
 
       container.append(
-        '<div style="color:#666;font-size:12px;padding:12px;font-family:monospace;">Waiting for datasource data...</div>',
+        '<div style="color:#666;font-size:12px;padding:12px;font-family:monospace;flex-shrink:0;">Waiting for datasource data...</div>',
       );
 
       updateValue();

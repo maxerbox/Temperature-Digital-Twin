@@ -188,23 +188,29 @@
         });
 
         // Linear interpolation: given a timestamp index, estimate the value
-        // for a sensor that has no exact data point at that timestamp
+        // for a sensor that has no exact data point at that timestamp.
+        // Also treats NaN (from DuckDB NULLs) as missing data.
         function interpolateValue(sensorName, tsIndex) {
           var ts = sortedTs[tsIndex];
           var pts = sensorSortedData[sensorName];
           if (!pts || pts.length === 0) return null;
 
-          // Exact match
+          // Exact match (skip NaN values)
           for (var i = 0; i < pts.length; i++) {
-            if (pts[i].ts === ts) return pts[i].val;
+            if (pts[i].ts === ts) {
+              var v = pts[i].val;
+              return (v === null || v === undefined || isNaN(v)) ? null : v;
+            }
           }
 
-          // Find surrounding points
+          // Find surrounding points (skip NaN)
           var before = null;
           var after = null;
           for (var j = 0; j < pts.length; j++) {
-            if (pts[j].ts < ts) before = pts[j];
-            if (pts[j].ts > ts && !after) {
+            var pv = pts[j].val;
+            var valid = pv !== null && pv !== undefined && !isNaN(pv);
+            if (pts[j].ts < ts && valid) before = pts[j];
+            if (pts[j].ts > ts && valid && !after) {
               after = pts[j];
               break;
             }
@@ -220,22 +226,20 @@
             return before.val + (after.val - before.val) * ratio;
           }
 
-          // Extrapolate if only one side is available
+          // Hold last known value if only one side is available
           if (before) return before.val;
           if (after) return after.val;
           return null;
         }
 
         // Build ECharts series per sensor
+        // Pre-interpolate: fill every timestamp slot with an interpolated
+        // value so both the chart lines and the tooltip are continuous.
+        // Sensors measure at different times, so without interpolation most
+        // slots would be null and the tooltip would show "—".
         var echartsSeries = sensorNames.map(function (name, idx) {
-          var s = series[name] || [];
-          var pointMap = {};
-          s.forEach(function (p) {
-            pointMap[p.ts] = p[metric];
-          });
-
-          var dataPoints = sortedTs.map(function (ts) {
-            return pointMap.hasOwnProperty(ts) ? pointMap[ts] : null;
+          var dataPoints = sortedTs.map(function (ts, tsIndex) {
+            return interpolateValue(name, tsIndex);
           });
 
           return {
@@ -268,17 +272,29 @@
                 '<div style="font-weight:bold;margin-bottom:4px;">' +
                 params[0].axisValueLabel +
                 "</div>";
+              var hoverIdx = params[0].dataIndex;
+              // Build a quick lookup of params by series name
+              var paramMap = {};
               params.forEach(function (p) {
-                var val = p.value;
-                // If null, interpolate from surrounding data points
-                if (val === null || val === undefined) {
-                  val = interpolateValue(p.seriesName, p.dataIndex);
-                }
+                paramMap[p.seriesName] = p;
+              });
+              // Iterate ALL sensors so every sensor shows a value (interpolated)
+              sensorNames.forEach(function (name, idx) {
+                var p = paramMap[name];
+                var val = p ? p.value : interpolateValue(name, hoverIdx);
+                var color =
+                  (echartsSeries[idx] && echartsSeries[idx].itemStyle &&
+                    echartsSeries[idx].itemStyle.color) ||
+                  COLORS[idx % COLORS.length];
+                var marker =
+                  '<span style="display:inline-block;margin-right:5px;' +
+                  "border-radius:10px;width:10px;height:10px;" +
+                  "background:" + color + ';"></span>';
                 var display =
                   val !== null && val !== undefined && !isNaN(val)
                     ? Number(val).toFixed(1) + " " + metricUnit
                     : "—";
-                html += p.marker + p.seriesName + ": " + display + "<br/>";
+                html += marker + name + ": " + display + "<br/>";
               });
               return html;
             },
