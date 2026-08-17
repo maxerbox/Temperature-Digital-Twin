@@ -46,26 +46,6 @@
       // Inner div for ECharts canvas — kept separate so the button stays on top
       echartsDiv = $('<div style="width:100%;height:100%;"></div>');
       chartDiv.append(echartsDiv);
-
-      // Add fullscreen toggle button (sibling of echartsDiv, on top via z-index)
-      var fsBtn = $(
-        '<button style="position:absolute;top:6px;right:8px;z-index:10;' +
-          "background:rgba(0,0,0,0.5);border:1px solid #444;border-radius:4px;" +
-          "color:#aaa;padding:3px 8px;font-size:14px;cursor:pointer;line-height:1;" +
-          'transition:color 0.2s,border-color 0.2s;">⛶</button>',
-      );
-      fsBtn.on("mouseenter", function () {
-        fsBtn.css({ color: "#fff", "border-color": "#2196F3" });
-      });
-      fsBtn.on("mouseleave", function () {
-        fsBtn.css({ color: "#aaa", "border-color": "#444" });
-      });
-      fsBtn.on("click", function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        self.toggleFullscreen();
-      });
-      chartDiv.append(fsBtn);
     }
 
     function buildChart(data) {
@@ -78,18 +58,6 @@
           chart = null;
         }
         chartDiv.empty();
-        // Keep the fullscreen button
-        var fsBtn = $(
-          '<button style="position:absolute;top:6px;right:8px;z-index:10;' +
-            "background:rgba(0,0,0,0.5);border:1px solid #444;border-radius:4px;" +
-            'color:#aaa;padding:3px 8px;font-size:14px;cursor:pointer;line-height:1;">⛶</button>',
-        );
-        fsBtn.on("click", function (e) {
-          e.preventDefault();
-          e.stopPropagation();
-          self.toggleFullscreen();
-        });
-        chartDiv.append(fsBtn);
         chartDiv.append(
           '<div style="display:flex;align-items:center;justify-content:center;' +
             'width:100%;height:100%;flex-direction:column;color:#ff6b6b;">' +
