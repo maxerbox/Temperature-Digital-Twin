@@ -313,17 +313,59 @@
         rows = result.toArray().map(function (row) {
           var obj = {};
           for (var key in row) {
-            // Convert Arrow timestamps to ISO strings for consistency
-            if (row[key] instanceof Date) {
-              obj[key] = row[key].toISOString();
+            var val = row[key];
+            // DuckDB-WASM returns Arrow timestamp[us, tz=UTC] columns as
+            // BigInt (microseconds since epoch) — NOT as Date objects.
+            // The _ts column is timestamp[us, tz=UTC], so we must convert
+            // the microsecond value to an ISO string ourselves.
+            // If left as a raw number, chart x-axis labels become garbage
+            // (e.g. substring of "1786981594778.264" → "78.264").
+            if (key === "_ts" || key.endsWith("_ts")) {
+              if (val instanceof Date) {
+                obj[key] = val.toISOString();
+              } else if (typeof val === "bigint") {
+                obj[key] = new Date(Number(val) / 1000).toISOString();
+              } else if (typeof val === "number") {
+                // DuckDB-WASM sometimes returns microsecond timestamps
+                // as plain numbers.  Heuristic: if the value is > 1e15
+                // it's microseconds; if > 1e12 it's milliseconds.
+                obj[key] =
+                  val > 1e15
+                    ? new Date(val / 1000).toISOString()
+                    : val > 1e12
+                      ? new Date(val).toISOString()
+                      : new Date(val * 1000).toISOString();
+              } else if (
+                val &&
+                typeof val === "object" &&
+                typeof val.toString === "function"
+              ) {
+                // Temporal or other Arrow wrapper — try toString then parse
+                var s = val.toString();
+                var n = Number(s);
+                if (!isNaN(n) && n > 1e12) {
+                  obj[key] =
+                    n > 1e15
+                      ? new Date(n / 1000).toISOString()
+                      : new Date(n).toISOString();
+                } else {
+                  obj[key] = new Date(s).toISOString();
+                }
+              } else {
+                obj[key] = new Date(val).toISOString();
+              }
+            } else if (val instanceof Date) {
+              obj[key] = val.toISOString();
             } else if (
-              row[key] &&
-              typeof row[key] === "object" &&
-              typeof row[key].toISOString === "function"
+              val &&
+              typeof val === "object" &&
+              typeof val.toISOString === "function"
             ) {
-              obj[key] = row[key].toISOString();
+              obj[key] = val.toISOString();
+            } else if (typeof val === "bigint") {
+              obj[key] = Number(val);
             } else {
-              obj[key] = row[key];
+              obj[key] = val;
             }
           }
           return obj;
