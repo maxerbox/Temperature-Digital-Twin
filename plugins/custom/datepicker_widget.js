@@ -117,6 +117,11 @@
         ".date-btn.active",
         "background:#2196F3;border-color:#2196F3;",
       );
+      // Keyframes for the loading spinner (was missing, causing no rotation)
+      freeboard.addStyle(
+        "@keyframes dp-spin",
+        "from { transform: rotate(0deg); } to { transform: rotate(360deg); }",
+      );
 
       // Set initial from/to values based on current filter
       function syncInputsFromFilter(filter) {

@@ -50,6 +50,21 @@
       ]
     },
     {
+      "title": "How to Use",
+      "width": 1,
+      "row": { "4": 1 },
+      "col": { "4": 4 },
+      "widgets": [
+        {
+          "type": "Documentation",
+          "settings": {
+            "title": "How to Use",
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
       "title": "Sensor Status",
       "width": 1,
       "row": { "4": 1 },

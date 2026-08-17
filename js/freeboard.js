@@ -990,6 +990,22 @@ function FreeboardUI()
 
 	function attachWidgetEditIcons(element)
 	{
+		// Inject a generic fullscreen button into each sub-section (once)
+		$(element).each(function()
+		{
+			var sub = $(this);
+			if(sub.find(".widget-fullscreen-btn").length === 0)
+			{
+				var fsBtn = $('<div class="widget-fullscreen-btn" title="Fullscreen">&#x26F6;</div>');
+				fsBtn.on("click", function(e)
+				{
+					e.stopPropagation();
+					toggleWidgetFullscreen(sub);
+				});
+				sub.append(fsBtn);
+			}
+		});
+
 		$(element).hover(function()
 		{
 			showWidgetEditIcons(this, true);
@@ -1008,6 +1024,87 @@ function FreeboardUI()
 		else
 		{
 			$(element).find(".sub-section-tools").fadeOut(150);
+		}
+	}
+
+	// ── Generic widget fullscreen ──────────────────────────────────────
+	// Works for ANY widget: clones the widget DOM into a fixed overlay,
+	// then notifies the widget instance via onSizeChanged so charts resize.
+	var fsOverlay = null;
+	var fsOriginalParent = null;
+	var fsWidgetModel = null;
+
+	function toggleWidgetFullscreen(subSection)
+	{
+		if(fsOverlay)
+		{
+			// ── Exit fullscreen ──
+			var widgetEl = fsOverlay.find(".fs-widget-content").children().first();
+
+			// Move widget element back to original parent
+			if(fsOriginalParent && widgetEl.length > 0)
+			{
+				fsOriginalParent.append(widgetEl);
+			}
+
+			fsOverlay.remove();
+			fsOverlay = null;
+			fsOriginalParent = null;
+
+			// Notify widget that size changed (e.g. ECharts resize)
+			if(fsWidgetModel && _.isFunction(fsWidgetModel.processSizeChange))
+			{
+				fsWidgetModel.processSizeChange();
+			}
+			fsWidgetModel = null;
+
+			$(document).off("keydown.fswidget");
+		}
+		else
+		{
+			// ── Enter fullscreen ──
+			var widgetDiv = subSection.find(".widget").first();
+			fsOriginalParent = widgetDiv;
+
+			// Find the widget model from the KO context
+			var koData = ko.dataFor(widgetDiv[0]);
+			fsWidgetModel = koData;
+
+			// Get the widget content (the element rendered by the widget instance)
+			var widgetContent = widgetDiv.children().detach();
+
+			fsOverlay = $(
+				'<div class="widget-fullscreen-overlay">' +
+					'<button class="widget-fullscreen-close">&#x2715; Close</button>' +
+					'<div class="fs-widget-content"></div>' +
+				'</div>'
+			);
+
+			fsOverlay.find(".fs-widget-content").append(widgetContent);
+			fsOverlay.find(".widget-fullscreen-close").on("click", function()
+			{
+				toggleWidgetFullscreen(subSection);
+			});
+
+			$(document.body).append(fsOverlay);
+
+			// Escape key to close
+			$(document).on("keydown.fswidget", function(e)
+			{
+				if(e.key === "Escape" && fsOverlay)
+				{
+					toggleWidgetFullscreen(subSection);
+				}
+			});
+
+			// Notify widget that size changed after a brief delay for DOM settle
+			setTimeout(function()
+			{
+				if(fsWidgetModel && _.isFunction(fsWidgetModel.processSizeChange))
+				{
+					fsWidgetModel.processSizeChange();
+				}
+			}, 100);
 		}
 	}
 
@@ -2897,6 +2994,8 @@ var freeboard = (function()
 				$(element).empty();
 				viewModel.render(element);
 			}
+			// Always ensure the generic fullscreen button is present on the sub-section
+			freeboardUI.attachWidgetEditIcons($(element).parent());
 		}
 	}
 
