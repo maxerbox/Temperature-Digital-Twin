@@ -1,14 +1,31 @@
 // DuckDB-WASM Generic Datasource Plugin for agent-freeboard
-// Acts as a translation layer between HuggingFace Parquet files and dashboard widgets.
+// Acts as a generic translation layer between HuggingFace Parquet files and dashboard widgets.
 // Uses DuckDB-WASM to run SQL queries directly in the browser on remote parquet files.
 // No backend needed — DuckDB-WASM fetches parquet via HTTP range requests and filters with SQL.
+//
+// Translation-layer pattern:
+//   This datasource normalizes raw parquet rows into a stable, widget-friendly schema so that
+//   any widget (text, chart, gauge) can consume the data without knowing about DuckDB or parquet.
+//   The output schema is identical to hf_dataset_datasource.js — widgets work with either backend.
+//
+// Output schema (passed to updateCallback):
+//   sensors:       { name → latest reading object }  — for text/gauge widgets
+//   series:        { name → [{ts, tempc, hum, ...}] } — for chart widgets
+//   sensor_names:  [name, ...] — for iteration without Object.keys()
+//   sensor_count:  number — for stat widgets
+//   date_label:   human-readable date filter label (e.g. "Last 3 days")
+//   date_range:   {start, end} — raw YYYY-MM-DD strings
+//   total_rows / filtered_rows — row counts
+//   total_files / scanned_files — parquet file counts (transparency)
+//   last_reading_ts / last_reading_relative — most recent reading info
+//   engine: "duckdb-wasm" — identifies the backend
 //
 // Architecture:
 //   1. Lists parquet files from HuggingFace API (main branch, not refs/convert/parquet)
 //   2. Pre-filters files by date using the Unix epoch timestamp embedded in filenames
 //   3. Registers only the relevant files in DuckDB-WASM via read_parquet([...])
 //   4. Runs SQL with WHERE clause for precise date filtering on the _ts column
-//   5. Groups results per sensor for the dashboard widgets
+//   5. Groups results per sensor into the widget-friendly schema above
 //
 // Date-filter optimization:
 //   Parquet filenames contain a Unix epoch timestamp (e.g. "1786981619.0110333.a2327e7f30.parquet").
@@ -21,7 +38,7 @@
 //   dataset:  HuggingFace dataset name (e.g. "maxerbox/temperature_digital_twin")
 //   config:   Dataset config / directory name (e.g. "pvvx_sensors")
 //   split:    Dataset split name (kept for compatibility, not used in file listing)
-//   date_filter: "today", "YYYY-MM-DD", "range:N", or "from:YYYY-MM-DD,to:YYYY-MM-DD"
+//   date_filter: "today", "YYYY-MM-DD", "range:N" (last N days incl. today), or "from:YYYY-MM-DD,to:YYYY-MM-DD"
 //   refresh:  Refresh interval in seconds
 (function () {
   // ─── DuckDB-WASM singleton ──────────────────────────────────────────────
@@ -509,11 +526,11 @@
         name: "date_filter",
         display_name: "Date Filter",
         description:
-          "'today' for today, 'YYYY-MM-DD' for a single day, 'range:N' for last N days, " +
+          "'today' for today, 'YYYY-MM-DD' for a single day, 'range:N' for last N days (incl. today), " +
           "or 'from:YYYY-MM-DD,to:YYYY-MM-DD' for a custom range. Filtering is done via SQL on parquet files.",
         type: "text",
-        default_value: "today",
-      },
+        default_value: "range:3",
+      },,
       {
         name: "refresh",
         display_name: "Refresh Every",
