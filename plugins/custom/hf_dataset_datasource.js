@@ -130,6 +130,9 @@
             if (allRows.length > 0) {
               processData(allRows);
             } else {
+              if (window.showToast) {
+                window.showToast("HF Dataset: " + error, "error");
+              }
               updateCallback({ error: error, sensors: [], rows: [] });
             }
           },

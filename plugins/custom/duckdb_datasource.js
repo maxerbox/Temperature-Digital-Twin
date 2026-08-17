@@ -46,10 +46,14 @@
   // DuckDB-WASM is loaded as an ESM module via dynamic import() from jsdelivr CDN.
   var _duckdbPromise = null;
   var DUCKDB_VERSION = "1.32.0";
+  // Use jsdelivr's /+esm endpoint — it auto-bundles apache-arrow inline.
+  // The raw dist/duckdb-browser.mjs has `import "apache-arrow"` as a bare specifier
+  // which browsers cannot resolve without an import map. The /+esm endpoint
+  // resolves and inlines all dependencies, avoiding the need for an import map.
   var DUCKDB_CDN =
     "https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@" +
     DUCKDB_VERSION +
-    "/dist/duckdb-browser.mjs";
+    "/+esm";
 
   function initDuckDB() {
     if (_duckdbPromise) return _duckdbPromise;
@@ -462,9 +466,14 @@
           updateCallback(processed);
         })
         .catch(function (err) {
+          var errMsg = String(err && err.message ? err.message : err);
           console.error("[DuckDB Datasource] Error:", err);
+          // Show error to the user via toast notification
+          if (window.showToast) {
+            window.showToast("DuckDB: " + errMsg, "error");
+          }
           updateCallback({
-            error: String(err),
+            error: errMsg,
             sensors: [],
             series: {},
             sensor_count: 0,
@@ -472,6 +481,7 @@
             total_rows: 0,
             sensor_names: [],
             date: dateFilterLabel(currentSettings.date_filter),
+            date_label: "Error: " + errMsg.substring(0, 60),
             date_from: dateRange.start,
             date_to: dateRange.end,
             last_reading_relative: "N/A",
@@ -530,7 +540,7 @@
           "or 'from:YYYY-MM-DD,to:YYYY-MM-DD' for a custom range. Filtering is done via SQL on parquet files.",
         type: "text",
         default_value: "range:3",
-      },,
+      },
       {
         name: "refresh",
         display_name: "Refresh Every",
