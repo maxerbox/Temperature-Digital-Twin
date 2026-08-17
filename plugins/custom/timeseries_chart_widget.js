@@ -219,6 +219,7 @@
           tooltip: {
             trigger: "axis",
             axisPointer: { type: "cross" },
+            appendToBody: true,
             formatter: function (params) {
               if (!params || params.length === 0) return "";
               var html =

@@ -1,6 +1,8 @@
 // HF Dataset Viewer Datasource Plugin
-// Fetches sensor data from HuggingFace Dataset Viewer API with pagination
-// Filters by date (based on _ts field) and organizes data per sensor
+// Fetches sensor data from HuggingFace Dataset Viewer /rows endpoint
+// Performs client-side date filtering (the /filter endpoint's DuckDB index
+// fails to build for this dataset, so we use /rows which works reliably)
+// Supports single-day and date-range filters
 (function () {
   var hfDatasource = function (settings, updateCallback) {
     var self = this;
@@ -15,6 +17,57 @@
       return d.getFullYear() + "-" + mm + "-" + dd;
     }
 
+    // Compute date N days before today (YYYY-MM-DD)
+    function dateOffset(days) {
+      var d = new Date();
+      d.setDate(d.getDate() + days);
+      var mm = String(d.getMonth() + 1).padStart(2, "0");
+      var dd = String(d.getDate()).padStart(2, "0");
+      return d.getFullYear() + "-" + mm + "-" + dd;
+    }
+
+    // Parse date_filter setting and return {start, end} as YYYY-MM-DD strings
+    // Supports: "today", "YYYY-MM-DD", "range:N" (last N days including today)
+    function parseDateRange(dateFilter) {
+      var df = dateFilter || "today";
+
+      if (df === "today" || df === "") {
+        var today = defaultDate();
+        return { start: today, end: today };
+      }
+
+      if (String(df).indexOf("range:") === 0) {
+        var days = parseInt(String(df).split(":")[1], 10);
+        if (isNaN(days) || days < 1) days = 7;
+        var startDate = dateOffset(-(days - 1)); // N days ago (including today)
+        var todayEnd = defaultDate();
+        return { start: startDate, end: todayEnd };
+      }
+
+      // Single day: YYYY-MM-DD
+      return { start: df, end: df };
+    }
+
+    // Client-side date filter: check if a row's _ts falls within [start, end]
+    // _ts is an ISO 8601 string like "2025-08-17T14:30:00.000Z"
+    function isInDateRange(tsStr, start, end) {
+      if (!tsStr) return false;
+      // Extract the date portion (first 10 chars: YYYY-MM-DD)
+      var rowDate = String(tsStr).substring(0, 10);
+      return rowDate >= start && rowDate <= end;
+    }
+
+    // Human-readable label for the current date filter
+    function dateFilterLabel(dateFilter) {
+      var df = dateFilter || "today";
+      if (df === "today" || df === "") return "Today";
+      if (String(df).indexOf("range:") === 0) {
+        var days = parseInt(String(df).split(":")[1], 10);
+        return "Last " + days + " days";
+      }
+      return df;
+    }
+
     function updateRefresh(refreshTime) {
       if (updateTimer) clearInterval(updateTimer);
       updateTimer = setInterval(function () {
@@ -24,7 +77,7 @@
 
     updateRefresh(currentSettings.refresh);
 
-    // Fetch all rows with pagination, then filter by date and organize
+    // Fetch all rows using /rows endpoint with pagination, then filter client-side
     this.updateNow = function () {
       var baseUrl = "https://datasets-server.huggingface.co/rows";
       var dataset =
@@ -35,6 +88,8 @@
       var allRows = [];
       var offset = 0;
       var totalRows = null;
+
+      var dateRange = parseDateRange(currentSettings.date_filter);
 
       function fetchBatch() {
         var url =
@@ -87,23 +142,10 @@
           return r.row;
         });
 
-        // Determine date filter
-        var dateFilter = currentSettings.date_filter || defaultDate();
-        var useTodayOnly = dateFilter === "today" || dateFilter === "";
-
-        var filteredData;
-        if (useTodayOnly) {
-          var today = defaultDate();
-          filteredData = rawData.filter(function (row) {
-            if (!row._ts) return false;
-            return row._ts.substring(0, 10) === today;
-          });
-        } else {
-          filteredData = rawData.filter(function (row) {
-            if (!row._ts) return false;
-            return row._ts.substring(0, 10) === dateFilter;
-          });
-        }
+        // Client-side date filtering
+        var filteredData = rawData.filter(function (row) {
+          return isInDateRange(row._ts, dateRange.start, dateRange.end);
+        });
 
         // Group by sensor name
         var sensorMap = {};
@@ -179,7 +221,7 @@
         }
 
         var result = {
-          date: useTodayOnly ? defaultDate() : dateFilter,
+          date: dateFilterLabel(currentSettings.date_filter),
           total_rows: rawData.length,
           filtered_rows: filteredData.length,
           sensor_count: sensorNames.length,
@@ -237,7 +279,7 @@
         name: "date_filter",
         display_name: "Date Filter",
         description:
-          "Filter data by this date (YYYY-MM-DD). Use 'today' for today's data. Leave blank for today.",
+          "'today' for today, 'YYYY-MM-DD' for a single day, or 'range:N' for last N days (e.g. range:7). Filtering is done client-side after fetching from /rows.",
         type: "text",
         default_value: "today",
       },

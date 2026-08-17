@@ -27,18 +27,18 @@
       containerEl = $(containerElement);
       containerEl.empty();
 
-      var wrapper = $('<div style="padding:10px;text-align:center;"></div>');
+      var wrapper = $('<div style="padding:8px;text-align:center;"></div>');
 
       // Title
       wrapper.append(
-        '<h3 style="color:#e0e0e0;margin-bottom:10px;">' +
+        '<h3 style="color:#e0e0e0;margin-bottom:6px;">' +
           (currentSettings.title || "Select Date") +
           "</h3>",
       );
 
       // Quick buttons grid (4 columns so 7 buttons wrap into 2 neat rows)
       var btnRow = $(
-        '<div style="margin-bottom:8px;display:grid;grid-template-columns:repeat(4,1fr);gap:3px;"></div>',
+        '<div style="margin-bottom:4px;display:grid;grid-template-columns:repeat(4,1fr);gap:3px;"></div>',
       );
       var todayBtn = $(
         '<button class="date-btn" data-date="today">Today</button>',
@@ -59,19 +59,13 @@
           '">-3d</button>',
       );
       var prevWeekBtn = $(
-        '<button class="date-btn" data-date="' +
-          dateOffset(-7) +
-          '">-7d</button>',
+        '<button class="date-btn" data-date="range:7">-7d</button>',
       );
       var prev2WeekBtn = $(
-        '<button class="date-btn" data-date="' +
-          dateOffset(-14) +
-          '">-14d</button>',
+        '<button class="date-btn" data-date="range:14">-14d</button>',
       );
       var prevMonthBtn = $(
-        '<button class="date-btn" data-date="' +
-          dateOffset(-30) +
-          '">-30d</button>',
+        '<button class="date-btn" data-date="range:30">-30d</button>',
       );
       btnRow.append(
         todayBtn,
@@ -85,7 +79,7 @@
       wrapper.append(btnRow);
 
       // Date input
-      var inputWrapper = $('<div style="margin-top:5px;"></div>');
+      var inputWrapper = $('<div style="margin-top:3px;"></div>');
       dateInput = $(
         '<input type="date" id="dp-' +
           Math.random().toString(36).substr(2, 9) +
@@ -105,7 +99,7 @@
 
       // Status text
       var status = $(
-        '<div id="dp-status" style="margin-top:8px;color:#888;font-size:12px;">Ready</div>',
+        '<div id="dp-status" style="margin-top:4px;color:#888;font-size:12px;">Ready</div>',
       );
       wrapper.append(status);
 
@@ -114,9 +108,10 @@
       // Add styles for buttons
       freeboard.addStyle(
         ".date-btn",
-        "background:#333;color:#e0e0e0;border:1px solid #555;padding:3px 4px;" +
+        "background:#333;color:#e0e0e0;border:1px solid #555;padding:4px 4px;" +
           "border-radius:3px;cursor:pointer;font-size:11px;text-align:center;" +
-          "transition:background 0.2s;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;",
+          "transition:background 0.2s;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" +
+          "line-height:1.4;",
       );
       freeboard.addStyle(".date-btn:hover", "background:#444;");
       freeboard.addStyle(
@@ -140,6 +135,12 @@
           dateInput.val(todayStr());
           status.text("Filtering for today...");
           self.updateDatasource("today");
+        } else if (String(date).indexOf("range:") === 0) {
+          // Range buttons: show last N days (from N days ago to today)
+          var days = parseInt(String(date).split(":")[1], 10);
+          dateInput.val(todayStr());
+          status.text("Loading last " + days + " days...");
+          self.updateDatasource("range:" + days);
         } else {
           dateInput.val(date);
           status.text("Filtering for " + date + "...");
@@ -183,7 +184,7 @@
     this.onDispose = function () {};
 
     this.getHeight = function () {
-      return 2;
+      return 3;
     };
   };
 
