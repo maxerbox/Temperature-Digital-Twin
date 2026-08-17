@@ -36,9 +36,9 @@
           "</h3>",
       );
 
-      // Quick buttons row
+      // Quick buttons grid (4 columns so 7 buttons wrap into 2 neat rows)
       var btnRow = $(
-        '<div style="margin-bottom:10px;display:flex;flex-wrap:wrap;gap:4px;justify-content:center;"></div>',
+        '<div style="margin-bottom:8px;display:grid;grid-template-columns:repeat(4,1fr);gap:3px;"></div>',
       );
       var todayBtn = $(
         '<button class="date-btn" data-date="today">Today</button>',
@@ -46,7 +46,7 @@
       var yestBtn = $(
         '<button class="date-btn" data-date="' +
           dateOffset(-1) +
-          '">Yesterday</button>',
+          '">-1d</button>',
       );
       var m2Btn = $(
         '<button class="date-btn" data-date="' +
@@ -114,8 +114,9 @@
       // Add styles for buttons
       freeboard.addStyle(
         ".date-btn",
-        "background:#333;color:#e0e0e0;border:1px solid #555;padding:4px 8px;" +
-          "border-radius:4px;cursor:pointer;font-size:12px;transition:background 0.2s;",
+        "background:#333;color:#e0e0e0;border:1px solid #555;padding:3px 4px;" +
+          "border-radius:3px;cursor:pointer;font-size:11px;text-align:center;" +
+          "transition:background 0.2s;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;",
       );
       freeboard.addStyle(".date-btn:hover", "background:#444;");
       freeboard.addStyle(
