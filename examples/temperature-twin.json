@@ -136,6 +136,22 @@
           }
         }
       ]
+    },
+    {
+      "title": "Datasource Explorer",
+      "width": 2,
+      "row": { "4": 3 },
+      "col": { "4": 1 },
+      "widgets": [
+        {
+          "type": "Datasource Explorer",
+          "settings": {
+            "title": "Datasource Explorer",
+            "data_source": "datasources[\"Sensors\"]",
+            "height": 6
+          }
+        }
+      ]
     }
   ],
   "columns": 4

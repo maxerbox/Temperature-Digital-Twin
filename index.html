@@ -11,6 +11,11 @@
       content="width = device-width, initial-scale = 1, user-scalable = no"
     />
     <link href="css/freeboard.min.css" rel="stylesheet" />
+    <!-- JsonTree.js for datasource explorer tree view (zero-dependency, MIT) -->
+    <link
+      href="https://cdn.jsdelivr.net/gh/williamtroup/JsonTree.js@4.7.1/dist/jsontree.js.min.css"
+      rel="stylesheet"
+    />
     <!-- Toastify.js for lightweight toast notifications (no dependencies) -->
     <link
       href="https://cdn.jsdelivr.net/npm/toastify-js@1.12.0/src/toastify.min.css"
@@ -19,6 +24,8 @@
     <script src="js/freeboard.thirdparty.min.js"></script>
     <!-- Apache ECharts for time series charts -->
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+    <!-- JsonTree.js for datasource explorer tree view (zero-dependency, MIT) -->
+    <script src="https://cdn.jsdelivr.net/gh/williamtroup/JsonTree.js@4.7.1/dist/jsontree.min.js"></script>
     <!-- timeago.js for human-readable relative timestamps -->
     <script src="https://cdn.jsdelivr.net/npm/timeago.js@4.0.2/dist/timeago.min.js"></script>
     <!-- Toastify.js for toast notifications -->
@@ -63,6 +70,7 @@
         "plugins/custom/timeseries_chart_widget.js",
         "plugins/custom/datepicker_widget.js",
         "plugins/custom/link_card_widget.js",
+        "plugins/custom/datasource_explorer_widget.js",
         function () {
           $(function () {
             //DOM Ready
