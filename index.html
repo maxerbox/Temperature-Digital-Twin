@@ -1,15 +1,21 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>Temperature Digital Twin</title>
-	<meta name="mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
-    <meta name="viewport" content = "width = device-width, initial-scale = 1, user-scalable = no" />
+    <meta
+      name="viewport"
+      content="width = device-width, initial-scale = 1, user-scalable = no"
+    />
     <link href="css/freeboard.min.css" rel="stylesheet" />
     <!-- Toastify.js for lightweight toast notifications (no dependencies) -->
-    <link href="https://cdn.jsdelivr.net/npm/toastify-js@1.12.0/src/toastify.min.css" rel="stylesheet" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/toastify-js@1.12.0/src/toastify.min.css"
+      rel="stylesheet"
+    />
     <script src="js/freeboard.thirdparty.min.js"></script>
     <!-- Apache ECharts for time series charts -->
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
@@ -18,266 +24,461 @@
     <!-- Toastify.js for toast notifications -->
     <script src="https://cdn.jsdelivr.net/npm/toastify-js@1.12.0/src/toastify.js"></script>
     <script type="text/javascript">
-        // ── Toast helper — available to all plugins via window.showToast ──
-        // Usage: window.showToast("message", "info|success|error|warning")
-        window.showToast = function(message, type) {
-            if (typeof Toastify === "undefined") {
-                console.log("[Toast] (" + (type || "info") + ") " + message);
-                return;
-            }
-            var bgColors = {
-                error:    "linear-gradient(135deg, #d32f2f, #b71c1c)",
-                warning:  "linear-gradient(135deg, #f57c00, #e65100)",
-                success:  "linear-gradient(135deg, #388e3c, #1b5e20)",
-                info:     "linear-gradient(135deg, #1565c0, #0d47a1)"
-            };
-            Toastify({
-                text: message,
-                duration: 8000,
-                close: true,
-                gravity: "top",
-                position: "right",
-                style: {
-                    background: bgColors[type] || bgColors.info,
-                    borderRadius: "6px",
-                    fontSize: "13px",
-                    maxWidth: "420px"
-                }
-            }).showToast();
+      // ── Toast helper — available to all plugins via window.showToast ──
+      // Usage: window.showToast("message", "info|success|error|warning")
+      window.showToast = function (message, type) {
+        if (typeof Toastify === "undefined") {
+          console.log("[Toast] (" + (type || "info") + ") " + message);
+          return;
+        }
+        var bgColors = {
+          error: "linear-gradient(135deg, #d32f2f, #b71c1c)",
+          warning: "linear-gradient(135deg, #f57c00, #e65100)",
+          success: "linear-gradient(135deg, #388e3c, #1b5e20)",
+          info: "linear-gradient(135deg, #1565c0, #0d47a1)",
         };
+        Toastify({
+          text: message,
+          duration: 8000,
+          close: true,
+          gravity: "top",
+          position: "right",
+          style: {
+            background: bgColors[type] || bgColors.info,
+            borderRadius: "6px",
+            fontSize: "13px",
+            maxWidth: "420px",
+          },
+        }).showToast();
+      };
     </script>
     <script type="text/javascript">
-        head.js("js/freeboard_plugins.min.js",
-                // *** Load more plugins here ***
-                "plugins/custom/duckdb_datasource.js",
-                "plugins/custom/hf_dataset_datasource.js",
-                "plugins/custom/timeseries_chart_widget.js",
-                "plugins/custom/datepicker_widget.js",
-                "plugins/custom/link_card_widget.js",
-                function(){
-                    $(function()
-                    { //DOM Ready
-                        freeboard.initialize(true);
+      head.js(
+        "js/freeboard_plugins.min.js",
+        // *** Load more plugins here ***
+        "plugins/custom/duckdb_datasource.js",
+        "plugins/custom/hf_dataset_datasource.js",
+        "plugins/custom/timeseries_chart_widget.js",
+        "plugins/custom/datepicker_widget.js",
+        "plugins/custom/link_card_widget.js",
+        function () {
+          $(function () {
+            //DOM Ready
+            freeboard.initialize(true);
 
-                        var hashpattern = window.location.hash.match(/(&|#)source=([^&]+)/);
-                        var savepattern = window.location.hash.match(/(&|#)save=([^&]+)/);
-                        var projectSaveEndpoint = savepattern !== null ? decodeURIComponent(savepattern[2]) : "/api/dashboard";
+            var hashpattern = window.location.hash.match(/(&|#)source=([^&]+)/);
+            var savepattern = window.location.hash.match(/(&|#)save=([^&]+)/);
+            var projectSaveEndpoint =
+              savepattern !== null
+                ? decodeURIComponent(savepattern[2])
+                : "/api/dashboard";
 
-                        function loadProjectDashboard() {
-                            if (!window.agentFreeboardProjectSource) {
-                                alert("Project dashboard is unavailable in this preview.");
-                                return;
-                            }
+            function loadProjectDashboard() {
+              if (!window.agentFreeboardProjectSource) {
+                alert("Project dashboard is unavailable in this preview.");
+                return;
+              }
 
-                            $.getJSON(window.agentFreeboardProjectSource)
-                                .done(function(data) {
-                                    freeboard.loadDashboard(data, function() {
-                                        freeboard.setEditing(true);
-                                    });
-                                })
-                                .fail(function(xhr) {
-                                    alert("Project dashboard load failed: " + (xhr.statusText || "unknown error"));
-                                });
-                        }
-
-                        function setProjectSaveMode(available, enabled, endpoint) {
-                            window.agentFreeboardDetectedSaveEndpoint = available ? endpoint : null;
-                            window.agentFreeboardSaveEndpoint = available && enabled ? endpoint : null;
-                            $("#project-save-toggle").prop("disabled", !available).prop("checked", Boolean(available && enabled));
-                            $("#project-save-mode").toggleClass("enabled", Boolean(available && enabled));
-                            $("#project-save-mode-value").text(available && enabled ? "Local write-back active" : "Download JSON fallback");
-                            $("#project-save-mode-detail").text(available ? (enabled ? "Save Dashboard writes to the project file." : "Save Dashboard downloads JSON.") : "Project file save is unavailable in this preview.");
-                        }
-
-                        setProjectSaveMode(false, false, projectSaveEndpoint);
-                        $("#project-save-toggle").on("change", function() {
-                            setProjectSaveMode(Boolean(window.agentFreeboardDetectedSaveEndpoint), this.checked, window.agentFreeboardDetectedSaveEndpoint || projectSaveEndpoint);
-                        });
-
-                        $.ajax({ url: projectSaveEndpoint, type: "GET", dataType: "json", cache: false })
-                            .done(function(capability) {
-                                var projectAvailable = Boolean(capability && capability.ok);
-                                var writeAvailable = Boolean(capability && capability.writeEnabled);
-                                window.agentFreeboardProjectSource = projectAvailable ? "/dashboard.json" : null;
-                                $("#project-load-dashboard").toggleClass("disabled", !projectAvailable);
-                                setProjectSaveMode(writeAvailable, writeAvailable, projectSaveEndpoint);
-                                if (hashpattern === null && projectAvailable) {
-                                    loadProjectDashboard();
-                                }
-                            })
-                            .fail(function() {
-                                window.agentFreeboardProjectSource = null;
-                                $("#project-load-dashboard").addClass("disabled");
-                                setProjectSaveMode(false, false, projectSaveEndpoint);
-                                if (hashpattern === null) {
-                                    $.getJSON("examples/temperature-twin.json", function(data) {
-                                        freeboard.loadDashboard(data, function() {
-                                            freeboard.setEditing(false);
-                                        });
-                                    }).fail(function(xhr) {
-                                        console.log("Default dashboard load failed: " + (xhr.statusText || "unknown error"));
-                                    });
-                                }
-                            });
-                        if (hashpattern !== null) {
-                            $.getJSON(decodeURIComponent(hashpattern[2]), function(data) {
-                                freeboard.loadDashboard(data, function() {
-                                    var editpattern = window.location.hash.match(/(&|#)edit=(true|1|yes)/i);
-                                    freeboard.setEditing(editpattern !== null);
-                                });
-                            });
-                        }
-
-                        window.agentFreeboardLoadProjectDashboard = loadProjectDashboard;
-
-                        // Hide loading overlay once the dashboard DOM is ready
-                        window.setLoadingStatus("Loading dashboard...");
-                        setTimeout(window.hideLoadingOverlay, 1500);
-
-                    });
+              $.getJSON(window.agentFreeboardProjectSource)
+                .done(function (data) {
+                  freeboard.loadDashboard(data, function () {
+                    freeboard.setEditing(true);
+                  });
+                })
+                .fail(function (xhr) {
+                  alert(
+                    "Project dashboard load failed: " +
+                      (xhr.statusText || "unknown error"),
+                  );
                 });
+            }
+
+            function setProjectSaveMode(available, enabled, endpoint) {
+              window.agentFreeboardDetectedSaveEndpoint = available
+                ? endpoint
+                : null;
+              window.agentFreeboardSaveEndpoint =
+                available && enabled ? endpoint : null;
+              $("#project-save-toggle")
+                .prop("disabled", !available)
+                .prop("checked", Boolean(available && enabled));
+              $("#project-save-mode").toggleClass(
+                "enabled",
+                Boolean(available && enabled),
+              );
+              $("#project-save-mode-value").text(
+                available && enabled
+                  ? "Local write-back active"
+                  : "Download JSON fallback",
+              );
+              $("#project-save-mode-detail").text(
+                available
+                  ? enabled
+                    ? "Save Dashboard writes to the project file."
+                    : "Save Dashboard downloads JSON."
+                  : "Project file save is unavailable in this preview.",
+              );
+            }
+
+            setProjectSaveMode(false, false, projectSaveEndpoint);
+            $("#project-save-toggle").on("change", function () {
+              setProjectSaveMode(
+                Boolean(window.agentFreeboardDetectedSaveEndpoint),
+                this.checked,
+                window.agentFreeboardDetectedSaveEndpoint ||
+                  projectSaveEndpoint,
+              );
+            });
+
+            $.ajax({
+              url: projectSaveEndpoint,
+              type: "GET",
+              dataType: "json",
+              cache: false,
+            })
+              .done(function (capability) {
+                var projectAvailable = Boolean(capability && capability.ok);
+                var writeAvailable = Boolean(
+                  capability && capability.writeEnabled,
+                );
+                window.agentFreeboardProjectSource = projectAvailable
+                  ? "/dashboard.json"
+                  : null;
+                $("#project-load-dashboard").toggleClass(
+                  "disabled",
+                  !projectAvailable,
+                );
+                setProjectSaveMode(
+                  writeAvailable,
+                  writeAvailable,
+                  projectSaveEndpoint,
+                );
+                if (hashpattern === null && projectAvailable) {
+                  loadProjectDashboard();
+                }
+              })
+              .fail(function () {
+                window.agentFreeboardProjectSource = null;
+                $("#project-load-dashboard").addClass("disabled");
+                setProjectSaveMode(false, false, projectSaveEndpoint);
+                if (hashpattern === null) {
+                  $.getJSON("examples/temperature-twin.json", function (data) {
+                    freeboard.loadDashboard(data, function () {
+                      freeboard.setEditing(false);
+                    });
+                  }).fail(function (xhr) {
+                    console.log(
+                      "Default dashboard load failed: " +
+                        (xhr.statusText || "unknown error"),
+                    );
+                  });
+                }
+              });
+            if (hashpattern !== null) {
+              $.getJSON(decodeURIComponent(hashpattern[2]), function (data) {
+                freeboard.loadDashboard(data, function () {
+                  var editpattern = window.location.hash.match(
+                    /(&|#)edit=(true|1|yes)/i,
+                  );
+                  freeboard.setEditing(editpattern !== null);
+                });
+              });
+            }
+
+            window.agentFreeboardLoadProjectDashboard = loadProjectDashboard;
+
+            // Hide loading overlay once the dashboard DOM is ready
+            window.setLoadingStatus("Loading dashboard...");
+            setTimeout(window.hideLoadingOverlay, 1500);
+          });
+        },
+      );
     </script>
-</head>
-<body>
-<!-- Loading overlay — shown until dashboard is ready -->
-<div id="loading-overlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#1a1a2e;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 0.4s;">
-    <div style="font-size:24px;font-weight:600;color:#e0e0e0;margin-bottom:20px;font-family:'Segoe UI',Arial,sans-serif;">Temperature Digital Twin</div>
-    <div style="width:40px;height:40px;border:3px solid #333;border-top-color:#2196F3;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
-    <div id="loading-status" style="margin-top:16px;color:#888;font-size:13px;font-family:'Segoe UI',Arial,sans-serif;">Initializing dashboard...</div>
-</div>
-<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
-<script>
-    // Update loading status text
-    window.setLoadingStatus = function(msg) {
+  </head>
+  <body>
+    <!-- Loading overlay — shown until dashboard is ready -->
+    <div
+      id="loading-overlay"
+      style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #1a1a2e;
+        z-index: 99999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        transition: opacity 0.4s;
+      "
+    >
+      <div
+        style="
+          font-size: 24px;
+          font-weight: 600;
+          color: #e0e0e0;
+          margin-bottom: 20px;
+          font-family: &quot;Segoe UI&quot;, Arial, sans-serif;
+        "
+      >
+        Temperature Digital Twin
+      </div>
+      <div
+        style="
+          width: 40px;
+          height: 40px;
+          border: 3px solid #333;
+          border-top-color: #2196f3;
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+        "
+      ></div>
+      <div
+        id="loading-status"
+        style="
+          margin-top: 16px;
+          color: #888;
+          font-size: 13px;
+          font-family: &quot;Segoe UI&quot;, Arial, sans-serif;
+        "
+      >
+        Initializing dashboard...
+      </div>
+    </div>
+    <style>
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+    <script>
+      // Update loading status text
+      window.setLoadingStatus = function (msg) {
         var el = document.getElementById("loading-status");
         if (el) el.textContent = msg;
-    };
-    // Hide loading overlay
-    window.hideLoadingOverlay = function() {
+      };
+      // Hide loading overlay
+      window.hideLoadingOverlay = function () {
         var overlay = document.getElementById("loading-overlay");
         if (overlay) {
-            overlay.style.opacity = "0";
-            setTimeout(function() { overlay.remove(); }, 400);
+          overlay.style.opacity = "0";
+          setTimeout(function () {
+            overlay.remove();
+          }, 400);
         }
-    };
-</script>
-<div id="board-content">
-    <img id="dash-logo" data-bind="attr:{src: header_image}, visible:header_image()">
-    <div class="gridster responsive-column-width">
-        <ul data-bind="grid: true">
-        </ul>
+      };
+    </script>
+    <div id="board-content">
+      <img
+        id="dash-logo"
+        data-bind="attr:{src: header_image}, visible:header_image()"
+      />
+      <div class="gridster responsive-column-width">
+        <ul data-bind="grid: true"></ul>
+      </div>
     </div>
-</div>
-<header id="main-header" data-bind="if:allow_edit">
-    <div id="admin-bar">
+    <header id="main-header" data-bind="if:allow_edit">
+      <div id="admin-bar">
         <div id="admin-menu">
-            <div id="board-tools">
-                <h1 id="board-logo" class="title bordered">agent-freeboard editor</h1>
-                <div id="board-actions">
-                    <ul class="board-toolbar vertical">
-                        <li data-bind="click: loadDashboardFromLocalFile"><i id="full-screen-icon" class="icon-folder-open icon-white"></i><label id="full-screen">Load JSON</label></li>
-                        <li id="project-load-dashboard" class="disabled" data-bind="click: loadDashboardFromProject"><i class="icon-refresh icon-white"></i><label>Load Project</label></li>
-                        <li><i class="icon-download-alt icon-white"></i><label data-bind="click: saveDashboardClicked">Save Dashboard</label></li>
-                        <li id="add-pane" data-bind="click: createPane"><i class="icon-plus icon-white"></i><label>Add Pane</label></li>
-                    </ul>
-                    <div id="project-save-mode" class="project-save-mode">
-                        <div class="project-save-mode-header">
-                            <div class="project-save-mode-label">Project Save Mode</div>
-                            <label class="project-save-toggle"><input id="project-save-toggle" type="checkbox" disabled> Save to project</label>
-                        </div>
-                        <div id="project-save-mode-value" class="project-save-mode-value">Download JSON fallback</div>
-                        <div id="project-save-mode-detail" class="project-save-mode-detail">Project file save is unavailable in this preview.</div>
-                    </div>
+          <div id="board-tools">
+            <h1 id="board-logo" class="title bordered">
+              agent-freeboard editor
+            </h1>
+            <div id="board-actions">
+              <ul class="board-toolbar vertical">
+                <li data-bind="click: loadDashboardFromLocalFile">
+                  <i
+                    id="full-screen-icon"
+                    class="icon-folder-open icon-white"
+                  ></i
+                  ><label id="full-screen">Load JSON</label>
+                </li>
+                <li
+                  id="project-load-dashboard"
+                  class="disabled"
+                  data-bind="click: loadDashboardFromProject"
+                >
+                  <i class="icon-refresh icon-white"></i
+                  ><label>Load Project</label>
+                </li>
+                <li>
+                  <i class="icon-download-alt icon-white"></i
+                  ><label data-bind="click: saveDashboardClicked"
+                    >Save Dashboard</label
+                  >
+                </li>
+                <li id="add-pane" data-bind="click: createPane">
+                  <i class="icon-plus icon-white"></i><label>Add Pane</label>
+                </li>
+              </ul>
+              <div id="project-save-mode" class="project-save-mode">
+                <div class="project-save-mode-header">
+                  <div class="project-save-mode-label">Project Save Mode</div>
+                  <label class="project-save-toggle"
+                    ><input id="project-save-toggle" type="checkbox" disabled />
+                    Save to project</label
+                  >
                 </div>
+                <div
+                  id="project-save-mode-value"
+                  class="project-save-mode-value"
+                >
+                  Download JSON fallback
+                </div>
+                <div
+                  id="project-save-mode-detail"
+                  class="project-save-mode-detail"
+                >
+                  Project file save is unavailable in this preview.
+                </div>
+              </div>
             </div>
-            <div id="datasources">
-                <h2 class="title">Datasources</h2>
+          </div>
+          <div id="datasources">
+            <h2 class="title">Datasources</h2>
 
-                <div class="datasource-list-container">
-                    <table class="table table-condensed sub-table" id="datasources-list" data-bind="if: datasources().length">
-                        <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Last Updated</th>
-                            <th>&nbsp;</th>
-                        </tr>
-                        </thead>
-                        <tbody data-bind="foreach: datasources">
-                        <tr>
-                            <td>
-                                <span class="text-button datasource-name" data-bind="text: name, pluginEditor: {operation: 'edit', type: 'datasource'}"></span>
-                            </td>
-                            <td data-bind="text: last_updated"></td>
-                            <td>
-                                <ul class="board-toolbar">
-                                    <li data-bind="click: updateNow"><i class="icon-refresh icon-white"></i></li>
-                                    <li data-bind="pluginEditor: {operation: 'delete', type: 'datasource'}">
-                                        <i class="icon-trash icon-white"></i></li>
-                                </ul>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <span class="text-button table-operation" data-bind="pluginEditor: {operation: 'add', type: 'datasource'}">ADD</span>
+            <div class="datasource-list-container">
+              <table
+                class="table table-condensed sub-table"
+                id="datasources-list"
+                data-bind="if: datasources().length"
+              >
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Last Updated</th>
+                    <th>&nbsp;</th>
+                  </tr>
+                </thead>
+                <tbody data-bind="foreach: datasources">
+                  <tr>
+                    <td>
+                      <span
+                        class="text-button datasource-name"
+                        data-bind="text: name, pluginEditor: {operation: 'edit', type: 'datasource'}"
+                      ></span>
+                    </td>
+                    <td data-bind="text: last_updated"></td>
+                    <td>
+                      <ul class="board-toolbar">
+                        <li data-bind="click: updateNow">
+                          <i class="icon-refresh icon-white"></i>
+                        </li>
+                        <li
+                          data-bind="pluginEditor: {operation: 'delete', type: 'datasource'}"
+                        >
+                          <i class="icon-trash icon-white"></i>
+                        </li>
+                      </ul>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
+            <span
+              class="text-button table-operation"
+              data-bind="pluginEditor: {operation: 'add', type: 'datasource'}"
+              >ADD</span
+            >
+          </div>
         </div>
+      </div>
+      <div id="column-tools" class="responsive-column-width">
+        <ul class="board-toolbar left-columns">
+          <li class="column-tool add" data-bind="click: addGridColumnLeft">
+            <span class="column-icon right"></span
+            ><i class="icon-arrow-left icon-white"></i>
+          </li>
+          <li class="column-tool sub" data-bind="click: subGridColumnLeft">
+            <span class="column-icon left"></span
+            ><i class="icon-arrow-right icon-white"></i>
+          </li>
+        </ul>
+        <ul class="board-toolbar right-columns">
+          <li class="column-tool sub" data-bind="click: subGridColumnRight">
+            <span class="column-icon right"></span
+            ><i class="icon-arrow-left icon-white"></i>
+          </li>
+          <li class="column-tool add" data-bind="click: addGridColumnRight">
+            <span class="column-icon left"></span
+            ><i class="icon-arrow-right icon-white"></i>
+          </li>
+        </ul>
+      </div>
+      <div id="toggle-header" data-bind="click: toggleEditing">
+        <i id="toggle-header-icon" class="icon-wrench icon-white"></i>
+      </div>
+    </header>
+
+    <div style="display: hidden">
+      <ul data-bind="template: { name: 'pane-template', foreach: panes}"></ul>
     </div>
-	<div id="column-tools" class="responsive-column-width">
-		<ul class="board-toolbar left-columns">
-			<li class="column-tool add" data-bind="click: addGridColumnLeft"><span class="column-icon right"></span><i class="icon-arrow-left icon-white"></i></li>
-			<li class="column-tool sub" data-bind="click: subGridColumnLeft"><span class="column-icon left"></span><i class="icon-arrow-right icon-white"></i></li>
-		</ul>
-		<ul class="board-toolbar right-columns">
-			<li class="column-tool sub" data-bind="click: subGridColumnRight"><span class="column-icon right"></span><i class="icon-arrow-left icon-white"></i></li>
-			<li class="column-tool add" data-bind="click: addGridColumnRight"><span class="column-icon left"></span><i class="icon-arrow-right icon-white"></i></li>
-		</ul>
-	</div>
-    <div id="toggle-header" data-bind="click: toggleEditing">
-        <i id="toggle-header-icon" class="icon-wrench icon-white"></i></div>
-</header>
 
-<div style="display:hidden">
-    <ul data-bind="template: { name: 'pane-template', foreach: panes}">
-    </ul>
-</div>
-
-<script type="text/html" id="pane-template">
-    <li data-bind="pane: true">
+    <script type="text/html" id="pane-template">
+      <li data-bind="pane: true">
         <header>
-            <h1 class="pane-title" data-bind="editableText: title, editable: $root.isEditing"></h1>
-            <ul class="board-toolbar pane-tools">
-                <li data-bind="pluginEditor: {operation: 'add', type: 'widget'}">
-                    <i class="icon-plus icon-white"></i>
-                </li>
-                <li data-bind="pluginEditor: {operation: 'edit', type: 'pane'}">
-                    <i class="icon-wrench icon-white"></i>
-                </li>
-                <li data-bind="pluginEditor: {operation: 'delete', type: 'pane'}">
-                    <i class="icon-trash icon-white"></i>
-                </li>
-            </ul>
+          <h1
+            class="pane-title"
+            data-bind="editableText: title, editable: $root.isEditing"
+          ></h1>
+          <ul class="board-toolbar pane-tools">
+            <li data-bind="pluginEditor: {operation: 'add', type: 'widget'}">
+              <i class="icon-plus icon-white"></i>
+            </li>
+            <li data-bind="pluginEditor: {operation: 'edit', type: 'pane'}">
+              <i class="icon-wrench icon-white"></i>
+            </li>
+            <li data-bind="pluginEditor: {operation: 'delete', type: 'pane'}">
+              <i class="icon-trash icon-white"></i>
+            </li>
+          </ul>
         </header>
         <section data-bind="foreach: widgets">
-            <div class="sub-section" data-bind="css: 'sub-section-height-' + height()">
-                <div class="widget" data-bind="widget: true, css:{fillsize:fillSize}"></div>
-                <div class="sub-section-tools">
-                    <ul class="board-toolbar">
-                        <!-- ko if:$parent.widgetCanMoveUp($data) -->
-                        <li data-bind="click:$parent.moveWidgetUp"><i class="icon-chevron-up icon-white"></i></li>
-                        <!-- /ko -->
-                        <!-- ko if:$parent.widgetCanMoveDown($data) -->
-                        <li data-bind="click:$parent.moveWidgetDown"><i class="icon-chevron-down icon-white"></i></li>
-                        <!-- /ko -->
-                        <li data-bind="pluginEditor: {operation: 'edit', type: 'widget'}"><i class="icon-wrench icon-white"></i></li>
-                        <li data-bind="pluginEditor: {operation: 'delete', type: 'widget'}"><i class="icon-trash icon-white"></i></li>
-                    </ul>
-                </div>
+          <div
+            class="sub-section"
+            data-bind="css: 'sub-section-height-' + height()"
+          >
+            <div
+              class="widget"
+              data-bind="widget: true, css:{fillsize:fillSize}"
+            ></div>
+            <div class="sub-section-tools">
+              <ul class="board-toolbar">
+                <!-- ko if:$parent.widgetCanMoveUp($data) -->
+                <li data-bind="click:$parent.moveWidgetUp">
+                  <i class="icon-chevron-up icon-white"></i>
+                </li>
+                <!-- /ko -->
+                <!-- ko if:$parent.widgetCanMoveDown($data) -->
+                <li data-bind="click:$parent.moveWidgetDown">
+                  <i class="icon-chevron-down icon-white"></i>
+                </li>
+                <!-- /ko -->
+                <li
+                  data-bind="pluginEditor: {operation: 'edit', type: 'widget'}"
+                >
+                  <i class="icon-wrench icon-white"></i>
+                </li>
+                <li
+                  data-bind="pluginEditor: {operation: 'delete', type: 'widget'}"
+                >
+                  <i class="icon-trash icon-white"></i>
+                </li>
+              </ul>
             </div>
+          </div>
         </section>
-        <button type="button" class="pane-add-widget" data-bind="visible: $root.isEditing, pluginEditor: {operation: 'add', type: 'widget'}">Add widget</button>
-    </li>
-</script>
-
-</body>
+        <button
+          type="button"
+          class="pane-add-widget"
+          data-bind="visible: $root.isEditing, pluginEditor: {operation: 'add', type: 'widget'}"
+        >
+          Add widget
+        </button>
+      </li>
+    </script>
+  </body>
 </html>
