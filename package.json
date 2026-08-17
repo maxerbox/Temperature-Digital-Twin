@@ -1,0 +1,34 @@
+{
+  "name": "agent-freeboard",
+  "title": "agent-freeboard",
+  "version": "1.2.1",
+  "description": "AI-enabled dashboard builder and free open-source alternative to Geckoboard for JSON, MQTT, and plugin-backed real-time data.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LeoStehlik/agent-freeboard.git"
+  },
+  "bin": {
+    "agent-freeboard": "scripts/agent-freeboard.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "agent-freeboard": "node scripts/agent-freeboard.mjs",
+    "build": "grunt",
+    "verify:cli": "node scripts/agent-freeboard.mjs validate examples/freeboard-demo.json && node scripts/agent-freeboard.mjs create examples/agent-dashboard-spec.json --out .artifacts/agent-dashboard.json && node scripts/agent-freeboard.mjs deploy .artifacts/agent-dashboard.json --out .artifacts/agent-dashboard-site",
+    "verify:assets": "node scripts/verify-static-assets.mjs",
+    "verify:examples": "node scripts/verify-dashboard-examples.mjs",
+    "verify": "npm audit --audit-level=moderate && npm run build && npm run verify:assets && npm run verify:examples && npm run verify:cli && npm run verify:serve",
+    "serve": "node scripts/agent-freeboard.mjs serve examples/freeboard-demo.json",
+    "verify:serve": "node scripts/verify-serve-save.mjs"
+  },
+  "devDependencies": {
+    "grunt": "^1.6.2",
+    "grunt-cli": "^1.5.0",
+    "grunt-contrib-concat": "^2.1.0",
+    "grunt-contrib-cssmin": "^5.0.0",
+    "grunt-contrib-uglify": "^5.2.2"
+  }
+}

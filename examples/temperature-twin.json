@@ -1,0 +1,102 @@
+{
+  "allow_edit": true,
+  "header_image": "",
+  "datasources": [
+    {
+      "name": "Sensors",
+      "type": "HF Dataset Viewer",
+      "settings": {
+        "dataset": "maxerbox/temperature_digital_twin",
+        "config": "pvvx_sensors",
+        "split": "train",
+        "date_filter": "today",
+        "refresh": 300
+      }
+    }
+  ],
+  "panes": [
+    {
+      "title": "Date Selection",
+      "width": 1,
+      "row": { "3": 1 },
+      "col": { "3": 1 },
+      "widgets": [
+        {
+          "type": "Date Picker",
+          "settings": {
+            "title": "Select Date",
+            "datasource_name": "Sensors",
+            "initial_date": "today"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Sensor Status",
+      "width": 1,
+      "row": { "3": 1 },
+      "col": { "3": 2 },
+      "widgets": [
+        {
+          "type": "text_widget",
+          "settings": {
+            "title": "Sensors Online",
+            "size": "big",
+            "value": "datasources[\"Sensors\"].sensor_count",
+            "sparkline": false,
+            "animate": true,
+            "units": ""
+          }
+        },
+        {
+          "type": "text_widget",
+          "settings": {
+            "title": "Readings",
+            "size": "regular",
+            "value": "datasources[\"Sensors\"].filtered_rows",
+            "sparkline": false,
+            "animate": true,
+            "units": ""
+          }
+        }
+      ]
+    },
+    {
+      "title": "Temperature (°C) - All Sensors",
+      "width": 2,
+      "row": { "3": 2 },
+      "col": { "3": 1 },
+      "widgets": [
+        {
+          "type": "Time Series Chart",
+          "settings": {
+            "title": "Temperature Over Time",
+            "data_source": "datasources[\"Sensors\"]",
+            "metric": "tempc",
+            "show_legend": true,
+            "height": 5
+          }
+        }
+      ]
+    },
+    {
+      "title": "Humidity (%) - All Sensors",
+      "width": 2,
+      "row": { "3": 3 },
+      "col": { "3": 1 },
+      "widgets": [
+        {
+          "type": "Time Series Chart",
+          "settings": {
+            "title": "Humidity Over Time",
+            "data_source": "datasources[\"Sensors\"]",
+            "metric": "hum",
+            "show_legend": true,
+            "height": 5
+          }
+        }
+      ]
+    }
+  ],
+  "columns": 3
+}
