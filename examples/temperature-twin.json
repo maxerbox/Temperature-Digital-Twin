@@ -4,7 +4,7 @@
   "datasources": [
     {
       "name": "Sensors",
-      "type": "HF Dataset Viewer",
+      "type": "DuckDB Parquet",
       "settings": {
         "dataset": "maxerbox/temperature_digital_twin",
         "config": "pvvx_sensors",
