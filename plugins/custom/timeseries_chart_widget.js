@@ -209,7 +209,7 @@
           for (var i = 0; i < pts.length; i++) {
             if (pts[i].ts === ts) {
               var v = pts[i].val;
-              return (v === null || v === undefined || isNaN(v)) ? null : v;
+              return v === null || v === undefined || isNaN(v) ? null : v;
             }
           }
 
@@ -293,13 +293,16 @@
                 var p = paramMap[name];
                 var val = p ? p.value : interpolateValue(name, hoverIdx);
                 var color =
-                  (echartsSeries[idx] && echartsSeries[idx].itemStyle &&
+                  (echartsSeries[idx] &&
+                    echartsSeries[idx].itemStyle &&
                     echartsSeries[idx].itemStyle.color) ||
                   COLORS[idx % COLORS.length];
                 var marker =
                   '<span style="display:inline-block;margin-right:5px;' +
                   "border-radius:10px;width:10px;height:10px;" +
-                  "background:" + color + ';"></span>';
+                  "background:" +
+                  color +
+                  ';"></span>';
                 var display =
                   val !== null && val !== undefined && !isNaN(val)
                     ? Number(val).toFixed(1) + " " + metricUnit
