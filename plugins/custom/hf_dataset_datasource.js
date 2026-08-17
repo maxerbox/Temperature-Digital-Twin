@@ -154,14 +154,29 @@
           }
         });
 
-        // Human-readable refresh time
-        var now = new Date();
-        var lastUpdatedDisplay =
-          String(now.getHours()).padStart(2, "0") +
-          ":" +
-          String(now.getMinutes()).padStart(2, "0") +
-          ":" +
-          String(now.getSeconds()).padStart(2, "0");
+        // Human-readable relative time for last sensor reading (e.g. "10 minutes ago")
+        var lastReadingRelative = "N/A";
+        if (lastReadingTs) {
+          try {
+            if (window.timeago) {
+              lastReadingRelative = window.timeago.format(lastReadingTs);
+            } else {
+              // Fallback: simple relative formatting
+              var diffMs = Date.now() - new Date(lastReadingTs).getTime();
+              var diffMin = Math.round(diffMs / 60000);
+              if (diffMin < 1) lastReadingRelative = "just now";
+              else if (diffMin === 1) lastReadingRelative = "1 minute ago";
+              else if (diffMin < 60) lastReadingRelative = diffMin + " minutes ago";
+              else {
+                var diffHr = Math.round(diffMin / 60);
+                if (diffHr === 1) lastReadingRelative = "1 hour ago";
+                else lastReadingRelative = diffHr + " hours ago";
+              }
+            }
+          } catch (e) {
+            lastReadingRelative = lastReadingTs;
+          }
+        }
 
         var result = {
           date: useTodayOnly ? defaultDate() : dateFilter,
@@ -172,8 +187,8 @@
           sensors: sensorMap, // latest reading per sensor
           series: sensorSeries, // full time series per sensor
           last_reading_ts: lastReadingTs,
+          last_reading_relative: lastReadingRelative,
           last_updated: new Date().toISOString(),
-          last_updated_display: lastUpdatedDisplay,
         };
 
         updateCallback(result);
